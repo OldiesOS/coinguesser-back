@@ -3,8 +3,8 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-# Add the model/app directory to the Python path for import resolution
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'model', 'app'))
+# Add the app directory to the Python path for import resolution
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app')))
 
 # Import the FastAPI app
 from main import app
