@@ -11,29 +11,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. 코드 체크아웃
-    - name: Checkout code
-      uses: actions/checkout@v3
+      # 1. 코드 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    # 2. Set up Docker Compose
-    - name: Build and run services
-      run: docker-compose up --build -d
+      # Docker Compose 설치
+      - name: Install Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep -Po '"tag_name": "\K[0-9.]+')" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
 
-    # 3. Wait for services to be ready (Optional)
-    - name: Wait for services to be ready
-      run: sleep 10 # 필요한 경우 이 값을 조정하여 서비스 시작 시간 고려
+      # 2. Set up Docker Compose
+      - name: Build and run services
+        run: docker-compose up --build -d
 
-    # 4. Run Node.js tests
-    - name: Run Node.js tests
-      run: |
-        docker exec nodejs-container npm test
+      # 3. Wait for services to be ready (Optional)
+      - name: Wait for services to be ready
+        run: sleep 10 # 필요한 경우 이 값을 조정하여 서비스 시작 시간 고려
 
-    # 5. Run FastAPI tests
-    - name: Run FastAPI tests
-      run: |
-        docker exec fastapi-container pytest tests/
+      # 4. Run Node.js tests
+      - name: Run Node.js tests
+        run: |
+          docker exec nodejs-container npm test
 
-    # 6. Tear down services
-    - name: Stop and remove Docker containers
-      if: always()
-      run: docker-compose down
+      # 5. Run FastAPI tests
+      - name: Run FastAPI tests
+        run: |
+          docker exec fastapi-container pytest tests/
+
+      # 6. Tear down services
+      - name: Stop and remove Docker containers
+        if: always()
+        run: docker-compose down
