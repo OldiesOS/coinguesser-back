@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  nodejs-service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nodejs-container
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+    environment:
+      - NODE_ENV=production
+
+  fastapi-service:
+    build:
+      context: ./model
+      dockerfile: Dockerfile
+    container_name: fastapi-container
+    ports:
+      - "8000:8000"
+    networks:
+      - app-network
+    environment:
+      - FASTAPI_ENV=production
+
+networks:
+  app-network:
+    driver: bridge

@@ -1,0 +1,39 @@
+# .github/workflows/ci.yml
+name: CI for Node.js and FastAPI
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. 코드 체크아웃
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # 2. Set up Docker Compose
+    - name: Build and run services
+      run: docker-compose up --build -d
+
+    # 3. Wait for services to be ready (Optional)
+    - name: Wait for services to be ready
+      run: sleep 10 # 필요한 경우 이 값을 조정하여 서비스 시작 시간 고려
+
+    # 4. Run Node.js tests
+    - name: Run Node.js tests
+      run: |
+        docker exec nodejs-container npm test
+
+    # 5. Run FastAPI tests
+    - name: Run FastAPI tests
+      run: |
+        docker exec fastapi-container pytest tests/
+
+    # 6. Tear down services
+    - name: Stop and remove Docker containers
+      if: always()
+      run: docker-compose down
