@@ -14,4 +14,4 @@
 
 ### Git Action 관련
 - 새로운 기능을 추가할 때 test/ 디렉토리에 자신이 개발한 기능에 대한 `feature*.test.js` 파일도 작성해야함
-- git action으로 `feature` 브랜치에서 `develop` 브랜치로 PR시 자동으로 테스트
+- git action으로 `feature` 브랜치에서 `main` 브랜치로 PR시 자동으로 테스트
