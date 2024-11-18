@@ -4,7 +4,7 @@ name: CI for Node.js and FastAPI
 on:
   pull_request:
     branches:
-      - develop
+      - main
 
 jobs:
   build-and-test:
@@ -19,9 +19,23 @@ jobs:
       - name: Build FastAPI service
         run: docker build -t fastapi-service ./model
 
+      #  Build and run nodejs service
+      - name: Build NodeJs service
+        run: docker build -t nodejs-service ./backend
+
       - name: Run FastAPI service
         run: |
-          docker run -d --name fastapi-container -p 8000:8000 -v ${{ github.workspace }}/test:/app/test fastapi-service
+          docker run -d --name fastapi-container -p 8000:8000 -v ${{ github.workspace }}/test/fastapi_test:/app/test fastapi-service
+
+      - name: Run nodejs service
+        run: |
+          docker run -d --name nodejs-container -p 3000:3000 \
+            -v ${{ github.workspace }}/test/nodejs_test:/app/test \
+            -e DB_USER=${{ secrets.DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            -e DB_HOST=${{ secrets.DB_HOST }} \
+            -e DB_NAME=${{ secrets.DB_NAME }} \
+            nodejs-service
 
       #  Wait for FastAPI service to be ready (Optional)
       - name: Wait for FastAPI service to be ready
@@ -30,6 +44,10 @@ jobs:
       #  Run FastAPI tests
       - name: Run FastAPI tests
         run: docker exec fastapi-container pytest test/
+
+      #  Run Nodejs tests
+      - name: Run NodeJS tests
+        run: docker exec nodejs-container npm test
 
       - name: Print success message
         if: success()
@@ -41,3 +59,5 @@ jobs:
         run: |
           docker stop fastapi-container
           docker rm fastapi-container
+          docker stop nodejs-container
+          docker rm nodejs-container
