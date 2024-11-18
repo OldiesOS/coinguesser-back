@@ -6,6 +6,4 @@ package-lock.json
 # git 관련
 .gitignore
 
-# 환경변수
-.env
 
