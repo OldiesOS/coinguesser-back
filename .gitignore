@@ -1,6 +1,4 @@
 node_modules/
 package-lock.json
 .ipynb_checkpoints
-
-# 환경 변수 파일 무시
-# .env ㅋㅋ;;
+.env
