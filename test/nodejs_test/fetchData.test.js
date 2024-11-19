@@ -1,5 +1,5 @@
 // fetchData.test.js
-const { fetchData } = require('./services/dataService');
+const { fetchData } = require('../src/services/dataService');
 
 describe('fetchData function', () => {
   it('should fetch data successfully', async () => {
@@ -10,7 +10,7 @@ describe('fetchData function', () => {
 
   it('should handle errors during data fetching', async () => {
     // fetchData 함수를 모의하여 에러를 강제로 발생시킴
-    jest.spyOn(require('./services/dataService'), 'fetchData').mockImplementation(() => {
+    jest.spyOn(require('../src/services/dataService'), 'fetchData').mockImplementation(() => {
       throw new Error('Fetch error');
     });
 

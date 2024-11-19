@@ -5,8 +5,8 @@ FROM node:18
 RUN apt-get update && apt-get install -y python3 python3-pip python3-venv --fix-missing
 
 # 가상 환경 생성 및 패키지 설치
-WORKDIR /usr/src/app
-RUN python3 -m venv /usr/src/app/venv
+WORKDIR /app
+RUN python3 -m venv /app/venv
 RUN venv/bin/pip install --upgrade pip
 COPY src/scripts/requirements.txt /src/scripts/requirements.txt
 RUN venv/bin/pip install -r /src/scripts/requirements.txt
