@@ -4,24 +4,47 @@ name: CI for Node.js and FastAPI
 on:
   pull_request:
     branches:
-      - develop
+      - main
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_NAME: ${{ secrets.DB_NAME }}
 
     steps:
       # 1. 코드 체크아웃
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Check environment variables
+        run: echo $DB_USER $DB_PASSWORD $DB_HOST $DB_NAME
+
+      - name: Create .env file
+        run: |
+          echo "DB_USER=${{ secrets.DB_USER }}" >> .env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+
       #  Build and run FastAPI service
       - name: Build FastAPI service
         run: docker build -t fastapi-service ./model
 
+      #  Build and run nodejs service
+      - name: Build NodeJs service
+        run: docker build -t nodejs-service ./backend
+
       - name: Run FastAPI service
         run: |
-          docker run -d --name fastapi-container -p 8000:8000 -v ${{ github.workspace }}/test:/app/test fastapi-service
+          docker run -d --name fastapi-container -p 8000:8000 -v ${{ github.workspace }}/test/fastapi_test:/app/test fastapi-service
+
+      - name: Run nodejs service
+        run: |
+          docker run -d --name nodejs-container -p 3000:3000 --env-file .env -v ${{ github.workspace }}/test/nodejs_test:/app/test nodejs-service
 
       #  Wait for FastAPI service to be ready (Optional)
       - name: Wait for FastAPI service to be ready
@@ -29,7 +52,15 @@ jobs:
 
       #  Run FastAPI tests
       - name: Run FastAPI tests
-        run: docker exec fastapi-container pytest test/
+        run: |
+          docker exec fastapi-container ls /app/
+          docker exec fastapi-container pytest test/
+
+      #  Run Nodejs tests
+      - name: Run NodeJS tests
+        run: |
+          docker exec nodejs-container ls /app/
+          docker exec nodejs-container npx jest test/
 
       - name: Print success message
         if: success()
@@ -41,3 +72,5 @@ jobs:
         run: |
           docker stop fastapi-container
           docker rm fastapi-container
+          docker stop nodejs-container
+          docker rm nodejs-container
