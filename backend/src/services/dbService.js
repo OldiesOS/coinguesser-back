@@ -61,38 +61,29 @@ async function updateDatabase() {
 
 
 // Coin 값을 가져오는 함수
-async function getCoinValue(coinName) {
+async function getCoinValue(coinName, isInit) {
+
   let connection;
   try {
     connection = await mysql.createConnection(dbConfig);
-    console.log(`Connected to the database for fetching ${coinName} data`);
+    const insertQuery = isInit ? `SELECT _time, predicted_value, real_value
+    FROM (
+      SELECT _time, predicted_value, real_value
+      FROM \`${coinName}\`
+      ORDER BY _time DESC
+      LIMIT 13
+    ) AS subquery
+    ORDER BY _time ASC;
+    ` : `SELECT _time, predicted_value, real_value FROM \`${coinName}\` ORDER BY _time DESC LIMIT 1`;
 
     // 데이터 조회 쿼리
     const [rows] = await connection.execute(
-      `SELECT _time, predicted_value, real_value
-      FROM (
-        SELECT _time, predicted_value, real_value
-        FROM \`${coinName}\`
-        ORDER BY _time DESC
-        LIMIT 13
-      ) AS subquery
-      ORDER BY _time ASC;
-      `
+      insertQuery
     );
     
-    
-    //역순으로 날라왔으니까 다시 정렬 
-    const sortedData = rows.sort((a, b) => {
-      const timeToSeconds = (timeStr) => {
-        const [hours, minutes, seconds] = timeStr.split(':').map(Number);
-        return hours * 3600 + minutes * 60 + seconds; 
-      };
-      return timeToSeconds(a._time) - timeToSeconds(b._time);
-    });
-    
-    // console.log(sortedData);
-    console.log(`${coinName} 초기 데이터 전송 `);
-    return sortedData; // 데이터를 반환
+    // console.log(rows);
+    console.log(`${coinName} 데이터 전송 `)
+    return rows; // 데이터를 반환
   } catch (error) {
     console.error(`Error fetching data for ${coinName}:`, error);
     throw error; // 호출부로 에러 전달
@@ -108,7 +99,7 @@ async function getCoinValue(coinName) {
 
 // 함수 실행 예제 (개발 시 테스트)
 //updateDatabase();
-// getCoinValue('xrp');
+getCoinValue('xrp', true);
 
 module.exports = {
   updateDatabase,
