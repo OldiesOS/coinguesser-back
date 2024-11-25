@@ -83,7 +83,14 @@ async function getCoinValue(coinName, isInit) {
     
     // console.log(rows);
     console.log(`${coinName} 데이터 전송 `)
-    return rows; // 데이터를 반환
+
+    const convertedRows = rows.map(item => ({
+      ...item,
+      predicted_value: parseFloat(item.predicted_value), // predicted_value를 float로 변환
+      real_value: item.real_value !== null ? parseFloat(item.real_value) : null // null이 아닌 경우만 변환
+    }));
+
+    return convertedRows; // 데이터를 반환
   } catch (error) {
     console.error(`Error fetching data for ${coinName}:`, error);
     throw error; // 호출부로 에러 전달
