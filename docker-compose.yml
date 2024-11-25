@@ -1,4 +1,3 @@
-
 services:
   nodejs-service:
     build:
