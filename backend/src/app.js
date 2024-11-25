@@ -10,20 +10,26 @@ const eventEmitter = new EventEmitter();
 
 // 다른 설정 및 미들웨어 추가 가능
 // 예: app.use(express.json());
-schedule.scheduleJob('*/5 * * * *', () => {
-    console.log('Running scheduled database update...');
-    // updateDatabase();
-    eventEmitter.emit('dataUpdate', '데이터 베이스 변동'); // 이벤트 발생 
-  });
 
-  console.log('Scheduled job initialized to run every 5 minutes.');
+// schedule.scheduleJob('*/5 * * * *', () => {
+//     console.log('Running scheduled database update...');
+//     // updateDatabase();
+//     eventEmitter.emit('dataUpdate', data); // 이벤트 발생 
+// eventEmitter.emit('dataUpdate', data) 인자로 데이터 안 줘도 되는데 주면 데베에서 또 조회할 필요가 없으니까 부담이 적음
+// });
+
+//테스팅을 위해서 초 단위로 설정함 
+schedule.scheduleJob('*/10 * * * * *', () => {
+  console.log('Running scheduled database update...');
+  // updateDatabase();
+  eventEmitter.emit('dataUpdate') // 이벤트 발생 
+});
 
 
 // 기본 라우트
 app.get('/', (req, res) => {
     res.send('Hello, Express!');
 });
-
 
 
 // 초기 데이터 응답
@@ -42,7 +48,7 @@ app.get('/API/:coin_name', async (req, res) => {
     // 결과 반환
     res.json(res_value);
   } catch (error) {
-    console.error('Error in /API/Data/stream/:coin_name:', error);
+    console.error('Error in /API/:coin_name:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -55,11 +61,13 @@ app.get('/API/stream/:coin_name', (req, res) => {
 
   const coin_name = req.params.coin_name;
 
-
-  const sendData = async () => {
+  const sendData = async (coin_name) => {
     try {
       const result = await getCoinValue(coin_name, false); // coin_name 기반 데이터 가져오기
-      const res_value = result[0];
+      const res_value = {
+        coin: coin_name,
+        ...result[0], 
+      };
       res.write(`data: ${JSON.stringify(res_value)}\n\n`); // SSE 데이터 전송
     } catch (error) {
       console.error('Error during SSE:', error);
@@ -67,11 +75,8 @@ app.get('/API/stream/:coin_name', (req, res) => {
     }
   };
 
-  //지금은 인터벌로 하는데 이 부분은 스케줄링 구현 되면 지울 거임
-  const interval = setInterval(sendData, 5000); 
-
   // 이벤트 리스너 등록
-  const handleUpdate = (data) => {
+  const handleUpdate = () => {
     // console.log(`Received update for ${coin_name}:`, data);
     sendData(coin_name); // 이벤트가 발생하면 sendData 호출
   };
@@ -84,7 +89,6 @@ app.get('/API/stream/:coin_name', (req, res) => {
 
   req.on('close', () => {
     console.log('SSE connection closed');
-    clearInterval(interval);
     eventEmitter.removeListener('dataUpdate', handleUpdate); // 리스너 제거
     res.end(); // SSE 응답 종료
   });
