@@ -59,9 +59,49 @@ async function updateDatabase() {
   }
 }
 
+
+// Coin 값을 가져오는 함수
+async function getCoinValue(coinName, isInit) {
+
+  let connection;
+  try {
+    connection = await mysql.createConnection(dbConfig);
+    const insertQuery = isInit ? `SELECT _time, predicted_value, real_value
+    FROM (
+      SELECT _time, predicted_value, real_value
+      FROM \`${coinName}\`
+      ORDER BY _time DESC
+      LIMIT 13
+    ) AS subquery
+    ORDER BY _time ASC;
+    ` : `SELECT _time, predicted_value, real_value FROM \`${coinName}\` ORDER BY _time DESC LIMIT 1`;
+
+    // 데이터 조회 쿼리
+    const [rows] = await connection.execute(
+      insertQuery
+    );
+    
+    // console.log(rows);
+    console.log(`${coinName} 데이터 전송 `)
+    return rows; // 데이터를 반환
+  } catch (error) {
+    console.error(`Error fetching data for ${coinName}:`, error);
+    throw error; // 호출부로 에러 전달
+  } finally {
+    if (connection) {
+      await connection.end();
+      // console.log('Database connection closed');
+    }
+  }
+}
+
+
+
 // 함수 실행 예제 (개발 시 테스트)
-updateDatabase();
+//updateDatabase();
+getCoinValue('xrp', true);
 
 module.exports = {
   updateDatabase,
+  getCoinValue
 };
