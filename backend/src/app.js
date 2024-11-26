@@ -2,9 +2,9 @@ require('dotenv').config({ path: '../.env' });
 const schedule = require('node-schedule');
 const EventEmitter = require('events');
 const express = require('express');
+const cors = require('cors');
 const app = express();
 const { updateDatabase, getCoinValue } = require('./services/dbService');
-
 
 const eventEmitter = new EventEmitter();
 
@@ -26,6 +26,8 @@ schedule.scheduleJob('*/10 * * * * *', () => {
 });
 
 
+app.use(cors()); // 모든 출처 허용
+app.use(express.json());
 // 기본 라우트
 app.get('/', (req, res) => {
     res.send('Hello, Express!');
