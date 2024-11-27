@@ -59,7 +59,7 @@ async function initDatabase() {
 
     console.log("Connected to the database");
 
-    await connection.execute("TRUNCATE TABLE xrp_data");
+    await connection.execute("TRUNCATE TABLE xrp");
     console.log("Existing data truncated");
 
     const insertQuery = `
