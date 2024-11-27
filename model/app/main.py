@@ -4,51 +4,50 @@ import joblib
 import numpy as np
 import os
 
-# Get the absolute path of the app directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Load the model and scaler
-model = joblib.load(os.path.join(BASE_DIR, "model.pkl"))
-scaler = joblib.load(os.path.join(BASE_DIR, "scaler.pkl"))
+try:
+    model = joblib.load(os.path.join(BASE_DIR, "model_XGBoost_3.0.pkl"))
+    scaler = joblib.load(os.path.join(BASE_DIR, "scaler_3.0.pkl"))
+except Exception as e:
+    raise RuntimeError(f"Error loading model or scaler: {e}")
 
-# Initialize FastAPI
 app = FastAPI()
 
-# Input schema
 class PredictRequest(BaseModel):
     open: float
     high: float
     low: float
+    close: float
     volume: float
-    value: float
-    Moving_Avg_5: float
-    Moving_Avg_10: float
-    Moving_Avg_20: float
-    RSI_14: float
-    MACD: float
-    Signal: float
-    Price_Change_Rate: float
-    Bollinger_Upper: float
-    Bollinger_Lower: float
-    Volume_Change_Rate: float
-    Cumulative_Volume: float
-    Time_of_Day: float
-    Recent_Volatility: float
+    ma_5: float
+    ma_10: float
+    ma_5_minus_ma_10: float
+    std_5: float
+    bollinger_high: float
+    bollinger_low: float
+    rsi: float
+    macd: float
+    macd_signal: float
+    true_range: float
+    atr_5: float
+    up_down_ratio: float
+    close_to_high_ratio: float
+    close_to_low_ratio: float
+    change_rate: float
 
 @app.post("/predict")
 def predict(request: PredictRequest):
-    input_data = np.array([[request.open, request.high, request.low, request.volume,
-                            request.value, request.Moving_Avg_5, request.Moving_Avg_10,
-                            request.Moving_Avg_20, request.RSI_14, request.MACD,
-                            request.Signal, request.Price_Change_Rate, request.Bollinger_Upper,
-                            request.Bollinger_Lower, request.Volume_Change_Rate,
-                            request.Cumulative_Volume, request.Time_of_Day,
-                            request.Recent_Volatility]])
+    input_data = np.array([[request.open, request.high, request.low, request.close, request.volume,
+                            request.ma_5, request.ma_10, request.ma_5_minus_ma_10,
+                            request.std_5, request.bollinger_high, request.bollinger_low,
+                            request.rsi, request.macd, request.macd_signal,
+                            request.true_range, request.atr_5, request.up_down_ratio,
+                            request.close_to_high_ratio, request.close_to_low_ratio,
+                            request.change_rate]])
 
-    # 스케일링 진행
     input_scaled = scaler.transform(input_data)
 
-    # 스케일링 된 데이터로 예측
     prediction = model.predict(input_scaled)
 
-    return {"predicted_close": prediction[0]}
+    return {"predicted_close": float(prediction[0])}

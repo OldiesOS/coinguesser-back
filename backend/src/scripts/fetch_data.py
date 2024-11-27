@@ -1,167 +1,128 @@
-import pyupbit
+import ccxt
 import pandas as pd
+import numpy as np
+from datetime import datetime
+import time
+import requests
 import json
+import argparse
 
-# 암호화폐의 OHLCV 데이터를 가져오는 함수
-def get_ohlcv(ticker, interval="minute5", count=32):
-    """
-    OHLCV 데이터를 가져오는 함수
-    :param ticker: 암호화폐 티커, 예를 들어 "KRW-BTC"
-    :param interval: 데이터 간격 ("day", "minute1", "minute5" 등)
-    :param count: 가져올 데이터 개수
-    :return: OHLCV 데이터 (DataFrame)
-    """
-    df = pyupbit.get_ohlcv(ticker, interval=interval, count=count)
-    return df
+# Binance API 연결
+exchange = ccxt.binance({
+    "rateLimit": 1200,
+    "enableRateLimit": True,
+})
+parser = argparse.ArgumentParser(description="arg that controls number of data")
+parser.add_argument('--count', type=int, required=True, help='data count')
+args = parser.parse_args()
 
-# 이동평균선 (Moving Average) 계산
-def get_moving_average(df, window=20):
-    """
-    이동평균선을 계산하는 함수
-    :param df: OHLCV 데이터
-    :param window: 이동평균 기간
-    :return: 이동평균 데이터 (Series)
-    """
-    return df['close'].rolling(window=window).mean()
+# 심볼 및 시간 간격 설정
+symbol = 'XRP/USDT'
+timeframe = '5m'     # 5분 간격 데이터
 
-# RSI (Relative Strength Index) 계산
-def get_rsi(df, period=14):
-    """
-    RSI를 계산하는 함수
-    :param df: OHLCV 데이터
-    :param period: RSI 계산에 사용할 기간
-    :return: RSI 데이터 (Series)
-    """
-    delta = df['close'].diff(1)
-    gain = delta.where(delta > 0, 0)
-    loss = -delta.where(delta < 0, 0)
-    avg_gain = gain.rolling(window=period).mean()
-    avg_loss = loss.rolling(window=period).mean()
+data_limit = 100  # 가져올 데이터 개수
+ohlcv = []
+
+final_data=[]
+final_columns = ['coin','timestamp','real_value','predicted_value']
+
+# 데이터 수집
+while len(ohlcv) < data_limit:
+    try:
+        new_data = exchange.fetch_ohlcv(symbol, timeframe, limit=data_limit)
+        if len(new_data) == 0:
+            break
+        ohlcv += new_data
+        start_timestamp = new_data[-1][0] + 1  # 중복 방지
+        time.sleep(1)  # API 제한 준수
+    except Exception as e:
+        print(f"Error fetching data: {e}")
+        break
+
+# 데이터프레임으로 변환
+columns = ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+df = pd.DataFrame(ohlcv, columns=columns)
+
+# 시간 변환 (유닉스 타임스탬프 -> 읽을 수 있는 시간)
+df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms') + pd.DateOffset(hours=9)
+df['timestamp'] = df['timestamp'].dt.strftime('%H:%M:%S')
+
+# 목표값 생성 (target_close: 5분 후의 close 값)
+df['target_close'] = df['close'].shift(-1)
+
+# 이동 평균 (5분, 10분)
+df['ma_5'] = df['close'].rolling(window=5).mean()
+df['ma_10'] = df['close'].rolling(window=10).mean()
+df['ma_5_minus_ma_10'] = df['ma_5'] - df['ma_10']
+
+# 표준편차 (5분)
+df['std_5'] = df['close'].rolling(window=5).std()
+
+# 볼린저 밴드
+df['bollinger_high'] = df['ma_5'] + (df['std_5'] * 2)
+df['bollinger_low'] = df['ma_5'] - (df['std_5'] * 2)
+
+# RSI 계산
+def calculate_rsi(series, window=14):
+    delta = series.diff()
+    gain = np.where(delta > 0, delta, 0)
+    loss = np.where(delta < 0, -delta, 0)
+    avg_gain = pd.Series(gain).rolling(window=window, min_periods=1).mean()
+    avg_loss = pd.Series(loss).rolling(window=window, min_periods=1).mean()
     rs = avg_gain / avg_loss
     rsi = 100 - (100 / (1 + rs))
     return rsi
 
-# MACD (Moving Average Convergence Divergence) 계산
-def get_macd(df, short_window=12, long_window=26, signal_window=9):
-    """
-    MACD와 Signal 라인을 계산하는 함수
-    :param df: OHLCV 데이터
-    :param short_window: 단기 이동평균 기간
-    :param long_window: 장기 이동평균 기간
-    :param signal_window: 시그널선 이동평균 기간
-    :return: MACD, Signal 데이터 (DataFrame)
-    """
-    short_ema = df['close'].ewm(span=short_window, adjust=False).mean()
-    long_ema = df['close'].ewm(span=long_window, adjust=False).mean()
-    macd = short_ema - long_ema
-    signal = macd.ewm(span=signal_window, adjust=False).mean()
-    return pd.DataFrame({'macd': macd, 'signal_value': signal})
+df['rsi'] = calculate_rsi(df['close'], window=14)
 
-# 최근 가격 변화 (변동률) 계산 함수
-def get_price_change_rate(df, period=1):
-    """
-    가격 변화율을 계산하는 함수
-    :param df: OHLCV 데이터 (DataFrame)
-    :param period: 변화율을 계산할 기간 (기본값: 직전 구간)
-    :return: 변화율 데이터 (Series)
-    """
-    return df['close'].pct_change(periods=period) * 100
+# MACD 계산
+short_ema = df['close'].ewm(span=12, adjust=False).mean()
+long_ema = df['close'].ewm(span=26, adjust=False).mean()
+df['macd'] = short_ema - long_ema
+df['macd_signal'] = df['macd'].ewm(span=9, adjust=False).mean()
 
-# 볼린저 밴드 계산 함수
-def get_bollinger_bands(df, window=20, num_std=2):
-    """
-    볼린저 밴드를 계산하는 함수
-    :param df: OHLCV 데이터 (DataFrame)
-    :param window: 볼린저 밴드의 기준 이동평균 기간 (기본값: 20)
-    :param num_std: 표준편차 배수 (기본값: 2)
-    :return: 볼린저 밴드 상한선, 하한선 데이터 (DataFrame)
-    """
-    rolling_mean = df['close'].rolling(window=window).mean()
-    rolling_std = df['close'].rolling(window=window).std()
-    upper_band = rolling_mean + (rolling_std * num_std)
-    lower_band = rolling_mean - (rolling_std * num_std)
-    return pd.DataFrame({'Bollinger_Upper': upper_band, 'Bollinger_Lower': lower_band})
+# ATR (Average True Range)
+df['true_range'] = np.maximum(
+    df['high'] - df['low'],
+    np.maximum(abs(df['high'] - df['close'].shift(1)), abs(df['low'] - df['close'].shift(1)))
+)
+df['atr_5'] = df['true_range'].rolling(window=5).mean()
 
-# 직전 구간 거래량 대비 비율 계산 함수
-def get_volume_change_rate(df):
-    """
-    직전 구간 거래량 대비 비율을 계산하는 함수
-    :param df: OHLCV 데이터 (DataFrame)
-    :return: 거래량 변화율 데이터 (Series)
-    """
-    return df['volume'].pct_change() * 100
+# 최근 상승/하락 비율
+df['up_down_ratio'] = df['close'].diff().apply(lambda x: 1 if x > 0 else 0).rolling(window=5).mean()
 
-# 누적 거래량 계산 함수
-def get_cumulative_volume(df):
-    """
-    누적 거래량을 계산하는 함수
-    :param df: OHLCV 데이터 (DataFrame)
-    :return: 누적 거래량 데이터 (Series)
-    """
-    return df['volume'].cumsum()
+# 종가와 최고가/최저가 간 거리
+df['close_to_high_ratio'] = (df['close'] - df['low']) / (df['high'] - df['low'])
+df['close_to_low_ratio'] = (df['high'] - df['close']) / (df['high'] - df['low'])
 
-# 시간대 계산 함수
-def get_time_of_day(df):
-    """
-    시간대를 구하는 함수 (예: 오전, 오후, 야간)
-    :param df: OHLCV 데이터 (DataFrame, index는 datetime이어야 함)
-    :return: 시간대 데이터 (Series)
-    """
-    hours = df.index.hour
-    time_of_day = pd.cut(hours, bins=[-1, 6, 12, 18, 24], labels=[0, 1, 2, 3], ordered=True)
-    return time_of_day
+# 5분 변화율 (change_rate)
+df['change_rate'] = df['close'].pct_change(periods=5)
 
-# 최근 N 구간 변동성 (표준편차) 계산 함수
-def get_recent_volatility(df, window=5):
-    """
-    최근 N 구간 동안의 변동성을 계산하는 함수
-    :param df: OHLCV 데이터 (DataFrame)
-    :param window: 변동성을 계산할 기간
-    :return: 변동성 데이터 (Series)
-    """
-    return df['close'].rolling(window=window).std()
+# 필요 없는 첫 14개의 행 제거 (RSI 및 기타 계산에 필요한 초기 값이 NaN인 경우)
+#df = df.dropna()
+df = df.tail(args.count)
 
-def save_to_excel(df, filename="output.xlsx"):
-    """
-    DataFrame을 엑셀 파일로 저장하는 함수
-    :param df: 저장할 DataFrame
-    :param filename: 저장할 파일 이름 (기본값: "output.xlsx")
-    """
-    df.to_excel(filename, index=True)  # index=True로 설정하면 인덱스도 엑셀에 포함됩니다
-    print(f"파일이 '{filename}' 이름으로 저장되었습니다.")
+
+json_data = df.to_json(orient='records')
+json_list = json.loads(json_data)
+
+
+url = 'http://localhost:8000/predict'
+for payload in json_list:
+    temp=[]
+    temp.extend([symbol.split('/')[0],payload['timestamp'],payload['target_close']])
+    del payload['timestamp']
+    del payload['target_close']
+    response = requests.post(url, json=payload)
+
+    # 응답 데이터 확인
+    if response.status_code == 200:
+        temp.append(response.json()['predicted_close'])
+    else:
+        print(f"Error: {response.status_code}")
     
-    
-#ticker = ['KRW-BTC', 'KRW-ETH', 'KRW-NEO', 'KRW-MTL', 'KRW-XRP', 'KRW-ETC', 'KRW-SNT', 'KRW-WAVES', 'KRW-XEM', 'KRW-QTUM']
-ticker = ['KRW-XRP']
-result_df = pd.DataFrame()
-for tick in ticker:
-    df = pd.DataFrame()
-    df = get_ohlcv(tick)
-
-    # 각 지표 계산
-    df['moving_avg_5'] = get_moving_average(df, window=5)
-    df['moving_avg_10'] = get_moving_average(df, window=10)
-    df['moving_avg_20'] = get_moving_average(df, window=20)
-    df['rsi_14'] = get_rsi(df, period=14)
-    macd_df = get_macd(df)
-    df = pd.concat([df, macd_df], axis=1)
-
-    df['price_change_rate'] = get_price_change_rate(df)
-    bollinger_bands = get_bollinger_bands(df)
-    df['bollinger_upper'] = bollinger_bands['Bollinger_Upper']
-    df['bollinger_lower'] = bollinger_bands['Bollinger_Lower']
-    df['volume_change_rate'] = get_volume_change_rate(df)
-    df['cumulative_volume'] = get_cumulative_volume(df)
-    df['time_of_day'] = get_time_of_day(df)
-    df['recent_volatility'] = get_recent_volatility(df)
-    
-    df.drop('close', axis=1, inplace=True)
-    
-    last_row = df.tail(12)
-    last_row = last_row.reset_index(drop=True)
-    last_row.insert(0, 'ticker', tick)
-
-result_json = last_row.to_json(orient='records', date_format='iso')
-print(result_json)
-
+    final_data.append(temp)
+        
+fianl_df = pd.DataFrame(final_data, columns=final_columns)
+print(fianl_df.to_json(orient='records'))
 
