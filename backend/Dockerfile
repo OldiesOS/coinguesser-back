@@ -1,17 +1,22 @@
 # 베이스 이미지로 Node.js LTS 버전 사용
 FROM node:18
 
-# 컨테이너 내의 작업 디렉토리 설정
-WORKDIR /usr/src/app
+# Python 및 pip 설치
+RUN apt-get update && apt-get install -y python3 python3-pip python3-venv --fix-missing
 
-# 프로젝트 파일 복사
-COPY package.json .
+# 가상 환경 생성 및 패키지 설치
+WORKDIR /app
+RUN python3 -m venv /app/venv
+RUN venv/bin/pip install --upgrade pip
+COPY src/scripts/requirements.txt /src/scripts/requirements.txt
+RUN venv/bin/pip install -r /src/scripts/requirements.txt
 
-# 종속성 설치
+# 프로젝트 파일 복사 및 npm 종속성 설치
+COPY package*.json ./
 RUN npm install
 
 # 전체 프로젝트 파일 복사
-COPY src/ .
+COPY . .
 
 # 애플리케이션을 노출할 포트 설정
 EXPOSE 3000
