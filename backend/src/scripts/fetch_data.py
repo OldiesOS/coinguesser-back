@@ -44,7 +44,7 @@ columns = ['timestamp', 'open', 'high', 'low', 'close', 'volume']
 df = pd.DataFrame(ohlcv, columns=columns)
 
 # 시간 변환 (유닉스 타임스탬프 -> 읽을 수 있는 시간)
-df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms') + pd.DateOffset(hours=9)
+df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms') + pd.DateOffset(hours=9) + pd.DateOffset(minutes=5)
 df['timestamp'] = df['timestamp'].dt.strftime('%H:%M:%S')
 
 # 목표값 생성 (target_close: 5분 후의 close 값)
