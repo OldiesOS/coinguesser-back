@@ -108,6 +108,10 @@ app.get("/API/stream/:coin_name", (req, res) => {
 
   // 첫 데이터 전송
   sendData(coin_name);
+  
+  setInterval(() => {
+    res.write('data: ping\n\n'); // 빈 데이터라도 보냄
+}, 10000); // 10초마다
 
   req.on("close", () => {
     console.log("SSE connection closed");
