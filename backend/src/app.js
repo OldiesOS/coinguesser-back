@@ -109,7 +109,8 @@ app.get("/API/stream/:coin_name", (req, res) => {
   sendData(coin_name);
 
   setInterval(() => {
-    `data: ${JSON.stringify({ event: "ping" })}\n\n` //ping ~~
+    // console.log('~~~~pp');
+    res.write(`data: ${JSON.stringify({ event: "ping" })}\n\n`);
   }, 10000); // 10초마다
 
   req.on("close", () => {
