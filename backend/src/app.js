@@ -34,12 +34,13 @@ const eventEmitter = new EventEmitter();
   }
 })();
 
-//테스팅을 위해서 초 단위로 설정함
-schedule.scheduleJob("*/5* * * *", () => {
+//5분 단위 실행 
+schedule.scheduleJob("*/5 * * * *", () => {
   console.log("Running scheduled database update...");
   updateDatabase();
   eventEmitter.emit("dataUpdate"); // 이벤트 발생
 });
+
 
 // Flutter 웹 애플리케이션의 정적 파일 제공
 const webAppPath = path.join(__dirname, "../build", "web");

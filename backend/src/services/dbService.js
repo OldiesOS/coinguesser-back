@@ -135,7 +135,7 @@ async function getCoinValue(coinName, isInit) {
 
 // 함수 실행 예제
 // updateDatabase();
-getCoinValue("xrp", true);
+// getCoinValue("xrp", true);
 
 module.exports = {
   updateDatabase,
