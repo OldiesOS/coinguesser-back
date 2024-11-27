@@ -105,7 +105,7 @@ async function getCoinValue(coinName, isInit) {
         ORDER BY id DESC
         LIMIT 13
       ) AS subquery
-      ORDER BY _time ASC;;
+      ORDER BY _time ASC;
       `
       : `
         SELECT _time, predicted_value, real_value 
