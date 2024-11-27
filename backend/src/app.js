@@ -34,13 +34,12 @@ const eventEmitter = new EventEmitter();
   }
 })();
 
-//5분 단위 실행 
+//5분 단위 실행
 schedule.scheduleJob("*/5 * * * *", () => {
   console.log("Running scheduled database update...");
   updateDatabase();
   eventEmitter.emit("dataUpdate"); // 이벤트 발생
 });
-
 
 // Flutter 웹 애플리케이션의 정적 파일 제공
 const webAppPath = path.join(__dirname, "../build", "web");
@@ -108,10 +107,10 @@ app.get("/API/stream/:coin_name", (req, res) => {
 
   // 첫 데이터 전송
   sendData(coin_name);
-  
+
   setInterval(() => {
-    res.write('data: ping\n\n'); // 빈 데이터라도 보냄
-}, 10000); // 10초마다
+    res.write("data: ping\n\n"); // 빈 데이터라도 보냄
+  }, 10000); // 10초마다
 
   req.on("close", () => {
     console.log("SSE connection closed");
