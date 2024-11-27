@@ -96,7 +96,7 @@ async function getCoinValue(coinName, isInit) {
         SELECT _time, predicted_value, real_value
         FROM (
           SELECT _time, predicted_value, real_value
-          FROM coin_data
+          FROM xrp
           WHERE coin='${coinName}'
           ORDER BY id DESC, _time DESC
           LIMIT 13
@@ -105,7 +105,7 @@ async function getCoinValue(coinName, isInit) {
       `
       : `
         SELECT _time, predicted_value, real_value 
-        FROM coin_data 
+        FROM xrp
         WHERE coin='${coinName}'
         ORDER BY id DESC, _time DESC
         LIMIT 1;
