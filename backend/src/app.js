@@ -109,7 +109,7 @@ app.get("/API/stream/:coin_name", (req, res) => {
   sendData(coin_name);
 
   setInterval(() => {
-    res.write("data: ping\n\n"); // 빈 데이터라도 보냄
+    `data: ${JSON.stringify({ event: "ping" })}\n\n` //ping ~~
   }, 10000); // 10초마다
 
   req.on("close", () => {
