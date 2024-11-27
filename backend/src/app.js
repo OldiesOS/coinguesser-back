@@ -3,6 +3,7 @@ const schedule = require('node-schedule');
 const EventEmitter = require('events');
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const app = express();
 const { updateDatabase, getCoinValue } = require('./services/dbService');
 
@@ -26,11 +27,19 @@ schedule.scheduleJob('*/10 * * * * *', () => {
 });
 
 
+
+// Flutter 웹 애플리케이션의 정적 파일 제공
+const webAppPath = path.join(__dirname, '../build', 'web');
+
+
 app.use(cors()); // 모든 출처 허용
 app.use(express.json());
-// 기본 라우트
+// 정적 파일 제공 설정
+app.use(express.static(webAppPath));
+
 app.get('/', (req, res) => {
-    res.send('Hello, Express!');
+    console.log('실행');
+    res.sendFile(path.join(webAppPath, 'index.html'));
 });
 
 
@@ -96,7 +105,6 @@ app.get('/API/stream/:coin_name', (req, res) => {
   });
 
 });
-
 
 
 
