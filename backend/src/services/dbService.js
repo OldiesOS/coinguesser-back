@@ -95,37 +95,52 @@ async function getCoinValue(coinName, isInit) {
   try {
     connection = await mysql.createConnection(dbConfig);
 
-    const query = isInit
-      ? `
+    if(isInit) {
+      const query = `
       SELECT _time, predicted_value, real_value
       FROM (
-        SELECT _time, predicted_value, real_value
+        SELECT id, _time, predicted_value, real_value
         FROM xrp
         WHERE coin ='${coinName}'
         ORDER BY id DESC
         LIMIT 13
       ) AS subquery
-      ORDER BY _time ASC;
+      ORDER BY id ASC;
       `
-      : `
-        SELECT _time, predicted_value, real_value 
-        FROM xrp
-        WHERE coin='${coinName}'
-        ORDER BY id DESC
-        LIMIT 1;
-      `;
+      const [rows] = await connection.execute(query);
+      console.log(`${coinName} 데이터 전송 완료`);
+      const convertedRows = rows.map((item) => ({
+        ...item,
+        predicted_value: parseFloat(item.predicted_value),
+        real_value: item.real_value !== null ? parseFloat(item.real_value) : null,
+      }));
+      return convertedRows;
+    }
 
-    const [rows] = await connection.execute(query);
+    if(!isInit) {
 
-    console.log(`${coinName} 데이터 전송 완료`);
+      const query = `
+      SELECT _time, predicted_value, real_value 
+      FROM xrp
+      WHERE coin='${coinName}'
+      ORDER BY id DESC
+      LIMIT 2;
+    `;
 
-    const convertedRows = rows.map((item) => ({
-      ...item,
-      predicted_value: parseFloat(item.predicted_value),
-      real_value: item.real_value !== null ? parseFloat(item.real_value) : null,
-    }));
+      const [rows] = await connection.execute(query);
+      console.log(`${coinName} 데이터 전송 완료`);
+      const convertedRows = {
+        time : rows[0]._time,
+        predicted_value: parseFloat(rows[0].predicted_value), // 첫 번째 줄 predicted_value
+        ex_real_value: rows[1].real_value !== null ? parseFloat(rows[1].real_value) : null, // 두 번째 줄 real_value
+      };
+      console.log(convertedRows);
+      return convertedRows;
 
-    return convertedRows;
+    }
+
+
+
   } catch (error) {
     console.error(`Error fetching data for ${coinName}:`, error);
     throw error;

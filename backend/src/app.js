@@ -37,8 +37,9 @@ const eventEmitter = new EventEmitter();
 //5분 단위 실행
 schedule.scheduleJob("*/5 * * * *", () => {
   console.log("Running scheduled database update...");
-  updateDatabase();
-  eventEmitter.emit("dataUpdate"); // 이벤트 발생
+  updateDatabase().then(() => {
+    eventEmitter.emit("dataUpdate"); // 작업 완료 후 이벤트 발생
+  });
 });
 
 // Flutter 웹 애플리케이션의 정적 파일 제공
@@ -84,11 +85,13 @@ app.get("/API/stream/:coin_name", (req, res) => {
   const coin_name = req.params.coin_name;
 
   const sendData = async (coin_name) => {
+    console.log('send data 실행')
     try {
       const result = await getCoinValue(coin_name, false); // coin_name 기반 데이터 가져오기
       const res_value = {
         coin: coin_name,
         ...result[0],
+        event: "update"
       };
       res.write(`data: ${JSON.stringify(res_value)}\n\n`); // SSE 데이터 전송
     } catch (error) {
@@ -109,9 +112,8 @@ app.get("/API/stream/:coin_name", (req, res) => {
   sendData(coin_name);
 
   setInterval(() => {
-    // console.log('~~~~pp');
     res.write(`data: ${JSON.stringify({ event: "ping" })}\n\n`);
-  }, 10000); // 10초마다
+  }, 3000); // 30초마다
 
   req.on("close", () => {
     console.log("SSE connection closed");
