@@ -97,21 +97,21 @@ async function getCoinValue(coinName, isInit) {
 
     const query = isInit
       ? `
+      SELECT _time, predicted_value, real_value
+      FROM (
         SELECT _time, predicted_value, real_value
-        FROM (
-          SELECT _time, predicted_value, real_value
-          FROM xrp
-          WHERE coin='${coinName}'
-          ORDER BY id DESC, _time DESC
-          LIMIT 13
-        ) AS subquery
-        ORDER BY _time ASC;
+        FROM xrp
+        WHERE coin ='${coinName}'
+        ORDER BY id DESC
+        LIMIT 13
+      ) AS subquery
+      ORDER BY _time ASC;;
       `
       : `
         SELECT _time, predicted_value, real_value 
         FROM xrp
         WHERE coin='${coinName}'
-        ORDER BY id DESC, _time DESC
+        ORDER BY id DESC
         LIMIT 1;
       `;
 
