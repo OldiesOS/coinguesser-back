@@ -107,7 +107,7 @@ json_data = df.to_json(orient='records')
 json_list = json.loads(json_data)
 
 
-url = 'http://localhost:8000/predict'
+url = 'http://fastapi-container:8000/predict'
 for payload in json_list:
     temp=[]
     temp.extend([symbol.split('/')[0],payload['timestamp'],payload['target_close']])
