@@ -26,17 +26,21 @@ async function updateDatabase() {
       ) VALUES (?, ?, ?, ?)
     `;
 
-    for (const data of dataList) {
-      const values = [
-        data.coin,
-        data.timestamp,
-        data.real_value,
-        data.predicted_value,
-      ];
+    const updateQuery = `
+      UPDATE xrp SET real_value = ? WHERE id = ( SELECT id FROM xrp ORDER BY id DESC LIMIT 1 );
+    `;
 
-      await connection.execute(insertQuery, values);
-      console.log("Data inserted successfully");
-    }
+    await connection.execute(updateQuery, [dataList[0].real_value]);
+    console.log("Data updated successfully");
+    const values = [
+      dataList[1].coin,
+      dataList[1].timestamp,
+      dataList[1].real_value,
+      dataList[1].predicted_value,
+    ];
+
+    await connection.execute(insertQuery, values);
+    console.log("Data inserted successfully");
   } catch (error) {
     console.error("Error updating the database:", error);
   } finally {

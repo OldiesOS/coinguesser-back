@@ -35,7 +35,7 @@ const eventEmitter = new EventEmitter();
 })();
 
 //테스팅을 위해서 초 단위로 설정함
-schedule.scheduleJob("*/5* * * *", () => {
+schedule.scheduleJob("*/10 * * * * *", () => {
   console.log("Running scheduled database update...");
   updateDatabase();
   eventEmitter.emit("dataUpdate"); // 이벤트 발생
