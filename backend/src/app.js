@@ -29,7 +29,7 @@ schedule.scheduleJob('*/10 * * * * *', () => {
 
 
 // Flutter 웹 애플리케이션의 정적 파일 제공
-const webAppPath = path.join(__dirname, '/build', 'web');
+const webAppPath = path.join(__dirname, '../build', 'web');
 
 
 app.use(cors()); // 모든 출처 허용
