@@ -20,6 +20,9 @@ async function updateDatabase() {
 
     console.log("Connected to the database");
 
+    await connection.execute("TRUNCATE TABLE mobile_data");
+    console.log("Existing data truncated");
+
     const insertQuery = `
       INSERT INTO xrp (
         coin, _time, real_value, predicted_value
@@ -29,6 +32,12 @@ async function updateDatabase() {
     const updateQuery = `
       UPDATE xrp SET real_value = ? WHERE id = ( SELECT id FROM xrp ORDER BY id DESC LIMIT 1 );
     `;
+
+    const mobileQuery = `
+      INSERT INTO mobile_data (
+        volume, increase_rate
+      ) VALUES (?, ?)
+    )`;
 
     await connection.execute(updateQuery, [dataList[0].real_value]);
     console.log("Data updated successfully");
@@ -40,6 +49,10 @@ async function updateDatabase() {
     ];
 
     await connection.execute(insertQuery, values);
+    await connection.execute(mobileQuery, [
+      dataList[dataList.length - 1].volume,
+      dataList[dataList.length - 1].rate,
+    ]);
     console.log("Data inserted successfully");
   } catch (error) {
     console.error("Error updating the database:", error);
@@ -60,6 +73,7 @@ async function initDatabase() {
     console.log("Connected to the database");
 
     await connection.execute("TRUNCATE TABLE xrp");
+    await connection.execute("TRUNCATE TABLE mobile_data");
     console.log("Existing data truncated");
 
     const insertQuery = `
@@ -68,17 +82,28 @@ async function initDatabase() {
       ) VALUES (?, ?, ?, ?)
     `;
 
+    const mobileQuery = `
+      INSERT INTO mobile_data (
+        volume, increase_rate
+      ) VALUES (?, ?)
+    )`;
+
     for (const data of dataList) {
-      const values = [
+      const coinvalues = [
         data.coin,
         data.timestamp,
         data.real_value,
         data.predicted_value,
       ];
 
-      await connection.execute(insertQuery, values);
+      await connection.execute(insertQuery, coinvalues);
       console.log("Data inserted successfully");
     }
+
+    await connection.execute(mobileQuery, [
+      dataList[dataList.length - 1].volume,
+      dataList[dataList.length - 1].rate,
+    ]);
   } catch (error) {
     console.error("Error updating the database:", error);
   } finally {
@@ -95,7 +120,7 @@ async function getCoinValue(coinName, isInit) {
   try {
     connection = await mysql.createConnection(dbConfig);
 
-    if(isInit) {
+    if (isInit) {
       const query = `
       SELECT _time, predicted_value, real_value
       FROM (
@@ -106,19 +131,19 @@ async function getCoinValue(coinName, isInit) {
         LIMIT 13
       ) AS subquery
       ORDER BY id ASC;
-      `
+      `;
       const [rows] = await connection.execute(query);
       console.log(`${coinName} 데이터 전송 완료`);
       const convertedRows = rows.map((item) => ({
         ...item,
         predicted_value: parseFloat(item.predicted_value),
-        real_value: item.real_value !== null ? parseFloat(item.real_value) : null,
+        real_value:
+          item.real_value !== null ? parseFloat(item.real_value) : null,
       }));
       return convertedRows;
     }
 
-    if(!isInit) {
-
+    if (!isInit) {
       const query = `
       SELECT _time, predicted_value, real_value 
       FROM xrp
@@ -130,17 +155,14 @@ async function getCoinValue(coinName, isInit) {
       const [rows] = await connection.execute(query);
       console.log(`${coinName} 데이터 전송 완료`);
       const convertedRows = {
-        time : rows[0]._time,
+        time: rows[0]._time,
         predicted_value: parseFloat(rows[0].predicted_value), // 첫 번째 줄 predicted_value
-        ex_real_value: rows[1].real_value !== null ? parseFloat(rows[1].real_value) : null, // 두 번째 줄 real_value
+        ex_real_value:
+          rows[1].real_value !== null ? parseFloat(rows[1].real_value) : null, // 두 번째 줄 real_value
       };
       console.log(convertedRows);
       return convertedRows;
-
     }
-
-
-
   } catch (error) {
     console.error(`Error fetching data for ${coinName}:`, error);
     throw error;

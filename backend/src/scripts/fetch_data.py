@@ -101,13 +101,14 @@ df['change_rate'] = df['close'].pct_change(periods=5)
 # 필요 없는 첫 14개의 행 제거 (RSI 및 기타 계산에 필요한 초기 값이 NaN인 경우)
 #df = df.dropna()
 df = df.tail(args.count)
-
+volume_value = df[['volume']]
 
 json_data = df.to_json(orient='records')
 json_list = json.loads(json_data)
 
+print(json_list)
 
-url = 'http://fastapi-container:8000/predict'
+url = 'http://localhost:8000/predict'
 for payload in json_list:
     temp=[]
     temp.extend([symbol.split('/')[0],payload['timestamp'],payload['target_close']])
@@ -123,6 +124,16 @@ for payload in json_list:
     
     final_data.append(temp)
         
-fianl_df = pd.DataFrame(final_data, columns=final_columns)
-print(fianl_df.to_json(orient='records'))
+        
+final_df = pd.DataFrame(final_data, columns=final_columns)
+result = pd.concat([final_df, volume_value], axis=1)
+result['rate'] = None  # 먼저 빈 컬럼 생성
+
+r_value = df.iloc[-2]['real_value']  
+p_value = df.iloc[-1]['predicted_value'] 
+increase_rate = ((p_value - r_value) / r_value) * 100
+# 마지막 행의 값으로 채우기
+result.loc[df.index[-1], 'rate'] = increase_rate
+
+print(result.to_json(orient='records'))
 

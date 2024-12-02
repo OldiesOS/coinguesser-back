@@ -7,8 +7,8 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 try:
-    model = joblib.load(os.path.join(BASE_DIR, "model_XGBoost_3.0.pkl"))
-    scaler = joblib.load(os.path.join(BASE_DIR, "scaler_3.0.pkl"))
+    model = joblib.load(os.path.join(BASE_DIR, "XRP_model_LSTM_4.0.pkl"))
+    scaler = joblib.load(os.path.join(BASE_DIR, "XRP_scaler_LSTM_4.0.pkl"))
 except Exception as e:
     raise RuntimeError(f"Error loading model or scaler: {e}")
 
