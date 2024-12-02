@@ -26,7 +26,7 @@ async function updateDatabase() {
     const insertQuery = `
       INSERT INTO xrp (
         coin, _time, real_value, predicted_value
-      ) VALUES (?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?);
     `;
 
     const updateQuery = `
@@ -36,16 +36,16 @@ async function updateDatabase() {
     const mobileQuery = `
       INSERT INTO mobile_data (
         volume, increase_rate
-      ) VALUES (?, ?)
-    )`;
+      ) VALUES (?, ?);
+    `;
 
     await connection.execute(updateQuery, [dataList[0].real_value]);
     console.log("Data updated successfully");
     const values = [
-      dataList[1].coin,
-      dataList[1].timestamp,
-      dataList[1].real_value,
-      dataList[1].predicted_value,
+      dataList[dataList.length - 1].coin,
+      dataList[dataList.length - 1].timestamp,
+      dataList[dataList.length - 1].real_value,
+      dataList[dataList.length - 1].predicted_value,
     ];
 
     await connection.execute(insertQuery, values);
@@ -79,14 +79,14 @@ async function initDatabase() {
     const insertQuery = `
       INSERT INTO xrp (
         coin, _time, real_value, predicted_value
-      ) VALUES (?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?);
     `;
 
     const mobileQuery = `
       INSERT INTO mobile_data (
         volume, increase_rate
-      ) VALUES (?, ?)
-    )`;
+      ) VALUES (?, ?);
+    `;
 
     for (const data of dataList) {
       const coinvalues = [
