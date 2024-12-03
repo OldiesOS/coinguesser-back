@@ -11,6 +11,17 @@ const dbConfig = {
   database: process.env.DB_NAME,
 };
 
+function unixToTime(unixTimestamp) {
+  unixTimestamp += 32700 * 1000;
+  const date = new Date(unixTimestamp);
+  // 시, 분, 초를 두 자리로 포맷팅
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+
+  return `${hours}:${minutes}:${seconds}`;
+}
+
 // 데이터베이스 업데이트 함수
 async function updateDatabase() {
   let connection;
@@ -27,7 +38,7 @@ async function updateDatabase() {
     `;
 
     const updateQuery = `
-      UPDATE coin_data SET real_value = ? WHERE id = ( SELECT id FROM coin_data WHERE coin = ? ORDER BY id DESC LIMIT 1 );
+      UPDATE coin_data SET real_value = ? WHERE id = ( SELECT id FROM coin_data WHERE coin = ? AND real_value IS NULL );
     `;
 
     const mobileQuery = `
@@ -46,7 +57,9 @@ async function updateDatabase() {
 
     //데이터 시간순 정렬
     Object.keys(groupedData).forEach((coin) => {
-      groupedData[coin].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+      groupedData[coin].sort((a, b) => {
+        return a.timestamp - b.timestamp;
+      });
     });
 
     Object.keys(groupedData).forEach((coin) => {
@@ -54,14 +67,14 @@ async function updateDatabase() {
 
       connection.execute(insertQuery, [
         groupedData[coin][1].coin,
-        groupedData[coin][1].timestamp,
+        unixToTime(groupedData[coin][1].timestamp),
         groupedData[coin][1].real_value,
         groupedData[coin][1].predicted_value,
       ]);
 
       connection.execute(mobileQuery, [
         groupedData[coin][1].coin,
-        groupedData[coin][1].timestamp,
+        unixToTime(groupedData[coin][1].timestamp),
         groupedData[coin][0].volume,
         groupedData[coin][1].rate,
       ]);
@@ -97,7 +110,9 @@ async function initDatabase() {
     }, {});
 
     Object.keys(groupedData).forEach((coin) => {
-      groupedData[coin].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+      groupedData[coin].sort((a, b) => {
+        return a.timestamp - b.timestamp;
+      });
     });
 
     await connection.execute("TRUNCATE TABLE coin_data");
@@ -120,7 +135,7 @@ async function initDatabase() {
       groupedData[coin].forEach((data) => {
         const coinvalues = [
           data.coin,
-          data.timestamp,
+          unixToTime(data.timestamp),
           data.real_value,
           data.predicted_value,
         ];
@@ -129,7 +144,7 @@ async function initDatabase() {
         if (data.rate != null) {
           connection.execute(mobileQuery, [
             data.coin,
-            data.timestamp,
+            unixToTime(data.timestamp),
             data.volume,
             data.rate,
           ]);

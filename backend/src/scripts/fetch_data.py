@@ -46,8 +46,6 @@ for symbol in symbol_List:
     df = pd.DataFrame(ohlcv, columns=columns)
 
     # 시간 변환 (유닉스 타임스탬프 -> 읽을 수 있는 시간)
-    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms') + pd.DateOffset(hours=9) + pd.DateOffset(minutes=5)
-    df['timestamp'] = df['timestamp'].dt.strftime('%H:%M:%S')
 
     # 목표값 생성 (target_close: 5분 후의 close 값)
     df['target_close'] = df['close'].shift(-1)
@@ -108,7 +106,6 @@ for symbol in symbol_List:
     json_data = df.to_json(orient='records')
     json_list = json.loads(json_data)
 
-    time.sleep(1)
     url = 'http://fastapi-service:8000/predict/'
     for payload in json_list:
         temp=[]
