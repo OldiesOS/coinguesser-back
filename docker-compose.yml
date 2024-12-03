@@ -10,6 +10,9 @@ services:
       - app-network
     environment:
       - NODE_ENV=production
+    depends_on:
+      fastapi-service:
+        condition: service_healthy
 
   fastapi-service:
     build:
@@ -22,6 +25,12 @@ services:
       - app-network
     environment:
       - FASTAPI_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://0.0.0.0:8000/health"]
+      interval: 180s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 networks:
   app-network:

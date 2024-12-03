@@ -114,3 +114,7 @@ def predict(asset: str, request: PredictRequest):
     model, scaler = models_scalers[asset]
     predicted_close = predict_crypto(model, scaler, request)
     return {f"{asset}_predicted_close": predicted_close}
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
