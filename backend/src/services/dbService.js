@@ -38,7 +38,7 @@ async function updateDatabase() {
     `;
 
     const updateQuery = `
-      UPDATE coin_data SET real_value = ? WHERE id = ( SELECT id FROM coin_data WHERE coin = ? AND real_value IS NULL );
+      UPDATE coin_data SET real_value = ? WHERE id = ( SELECT id FROM coin_data WHERE coin = ? AND real_value IS NULL ORDER BY id DESC LIMIT 1);
     `;
 
     const mobileQuery = `
