@@ -10,6 +10,8 @@ const {
   updateDatabase,
   getCoinValue,
 } = require("./services/dbService");
+const { getMobileData } = require("./API/mobileAPI");
+
 
 const eventEmitter = new EventEmitter();
 
@@ -123,6 +125,50 @@ app.get("/API/stream/:coin_name", (req, res) => {
     res.end(); // SSE 응답 종료
   });
 });
+
+
+// 모바일 스트림
+app.get("/API/stream/mobile/:coin_name", async (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  const coin_name = req.params.coin_name;
+
+  const sendData = async (coin_name) => {
+    console.log('send data 실행')
+    try {
+      const result = await getMobileData(coin_name); 
+      console.log(result);
+      res.write(`data: ${JSON.stringify(result)}\n\n`); // SSE 데이터 전송
+
+    } catch (error) {
+      console.error("Error during SSE:", error);
+      res.write(`event: error\ndata: "Error fetching data"\n\n`);
+    }
+  };
+
+  // 이벤트 리스너 등록
+  const handleUpdate = () => {
+    sendData(coin_name); // 이벤트가 발생하면 sendData 호출
+  };
+
+  eventEmitter.on("dataUpdate", handleUpdate);
+
+  // 첫 데이터 전송
+  sendData(coin_name);
+
+  setInterval(() => {
+    res.write(`data: ${JSON.stringify({ event: "ping" })}\n\n`);
+  }, 15000); // 15초마다
+
+  req.on("close", () => {
+    console.log("SSE connection closed");
+    eventEmitter.removeListener("dataUpdate", handleUpdate); // 리스너 제거
+    res.end(); // SSE 응답 종료
+  });
+});
+
 
 // app 객체를 외부에서 사용할 수 있도록 내보내기
 module.exports = app;
