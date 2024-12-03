@@ -27,7 +27,7 @@ const eventEmitter = new EventEmitter();
   try {
     // 서버 시작 시 데이터베이스 초기화
     console.log("Initializing database...");
-    // await initDatabase();
+    await initDatabase();
     console.log("Database initialization completed.");
   } catch (error) {
     console.error("Error during database initialization:", error);
@@ -37,10 +37,10 @@ const eventEmitter = new EventEmitter();
 //5분 단위 실행
 schedule.scheduleJob("*/5 * * * *", () => {
   console.log("Running scheduled database update...");
-  // updateDatabase().then(() => {
-  //   eventEmitter.emit("dataUpdate"); // 작업 완료 후 이벤트 발생
-  // });
-  eventEmitter.emit("dataUpdate");
+  updateDatabase().then(() => {
+    eventEmitter.emit("dataUpdate"); // 작업 완료 후 이벤트 발생
+  });
+
 });
 
 // Flutter 웹 애플리케이션의 정적 파일 제공
