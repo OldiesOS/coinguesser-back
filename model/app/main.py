@@ -28,6 +28,22 @@ try:
             load_model(os.path.join(BASE_DIR, "ADA_model_LSTM_1.0.keras")),
             joblib.load(os.path.join(BASE_DIR, "ADA_scaler_LSTM_1.0.pkl")),
         ),
+        "ETH": (
+            load_model(os.path.join(BASE_DIR, "ETH_model_LSTM_1.0.keras")),
+            joblib.load(os.path.join(BASE_DIR, "ETH_scaler_LSTM_1.0.pkl")),
+        ),
+        "BCH": (
+            load_model(os.path.join(BASE_DIR, "BCH_model_LSTM_1.0.keras")),
+            joblib.load(os.path.join(BASE_DIR, "BCH_scaler_LSTM_1.0.pkl")),
+        ),
+        "ONDO": (
+            load_model(os.path.join(BASE_DIR, "ONDO_model_LSTM_1.0.keras")),
+            joblib.load(os.path.join(BASE_DIR, "ONDO_scaler_LSTM_1.0.pkl")),
+        ),
+        "BRETT": (
+            load_model(os.path.join(BASE_DIR, "BRETT_model_LSTM_1.0.keras")),
+            joblib.load(os.path.join(BASE_DIR, "BRETT_scaler_LSTM_1.0.pkl")),
+        ),
     }
 except Exception as e:
     raise RuntimeError(f"Error loading model or scaler: {e}")
@@ -93,7 +109,7 @@ def predict_crypto(model, scaler, request):
 def predict(asset: str, request: PredictRequest):
     asset = asset.upper()
     if asset not in models_scalers:
-        raise HTTPException(status_code=400, detail="Invalid asset type. Supported assets: XRP, BTC, SOL, ADA")
+        raise HTTPException(status_code=400, detail="Invalid asset type.")
 
     model, scaler = models_scalers[asset]
     predicted_close = predict_crypto(model, scaler, request)
