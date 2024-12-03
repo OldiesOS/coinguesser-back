@@ -17,7 +17,7 @@ parser.add_argument('--count', type=int, required=True, help='data count')
 args = parser.parse_args()
 
 # 심볼 및 시간 간격 설정
-symbol_List = ['XRP/USDT','ADA/USDT','BTC/USDT','SOL/USDT']
+symbol_List = ['XRP/USDT','ADA/USDT','BTC/USDT','SOL/USDT','BCH/USDT','BRETT/USDT','ETH/USDT','ONDO/USDT']
 timeframe = '5m'     # 5분 간격 데이터
 
 data_limit = 100  # 가져올 데이터 개수
@@ -108,7 +108,7 @@ for symbol in symbol_List:
     json_data = df.to_json(orient='records')
     json_list = json.loads(json_data)
 
-
+    time.sleep(1)
     url = 'http://fastapi-service:8000/predict/'
     for payload in json_list:
         temp=[]
