@@ -27,7 +27,7 @@ const eventEmitter = new EventEmitter();
   try {
     // 서버 시작 시 데이터베이스 초기화
     console.log("Initializing database...");
-    await initDatabase();
+    // await initDatabase();
     console.log("Database initialization completed.");
   } catch (error) {
     console.error("Error during database initialization:", error);
@@ -37,9 +37,10 @@ const eventEmitter = new EventEmitter();
 //5분 단위 실행
 schedule.scheduleJob("*/5 * * * *", () => {
   console.log("Running scheduled database update...");
-  updateDatabase().then(() => {
-    eventEmitter.emit("dataUpdate"); // 작업 완료 후 이벤트 발생
-  });
+  // updateDatabase().then(() => {
+  //   eventEmitter.emit("dataUpdate"); // 작업 완료 후 이벤트 발생
+  // });
+  eventEmitter.emit("dataUpdate");
 });
 
 // Flutter 웹 애플리케이션의 정적 파일 제공
@@ -90,9 +91,10 @@ app.get("/API/stream/:coin_name", (req, res) => {
       const result = await getCoinValue(coin_name, false); // coin_name 기반 데이터 가져오기
       const res_value = {
         coin: coin_name,
-        ...result[0],
+        ...result,
         event: "update"
       };
+      console.log(res_value);
       res.write(`data: ${JSON.stringify(res_value)}\n\n`); // SSE 데이터 전송
     } catch (error) {
       console.error("Error during SSE:", error);
@@ -113,7 +115,7 @@ app.get("/API/stream/:coin_name", (req, res) => {
 
   setInterval(() => {
     res.write(`data: ${JSON.stringify({ event: "ping" })}\n\n`);
-  }, 3000); // 30초마다
+  }, 15000); // 15초마다
 
   req.on("close", () => {
     console.log("SSE connection closed");
