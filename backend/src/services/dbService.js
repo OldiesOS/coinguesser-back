@@ -20,39 +20,55 @@ async function updateDatabase() {
 
     console.log("Connected to the database");
 
-    await connection.execute("TRUNCATE TABLE mobile_data");
-    console.log("Existing data truncated");
-
     const insertQuery = `
-      INSERT INTO xrp (
+      INSERT INTO coin_data (
         coin, _time, real_value, predicted_value
       ) VALUES (?, ?, ?, ?);
     `;
 
     const updateQuery = `
-      UPDATE xrp SET real_value = ? WHERE id = ( SELECT id FROM xrp ORDER BY id DESC LIMIT 1 );
+      UPDATE coin_data SET real_value = ? WHERE id = ( SELECT id FROM coin_data ORDER BY id DESC LIMIT 1 );
     `;
 
     const mobileQuery = `
       INSERT INTO mobile_data (
-        volume, increase_rate
-      ) VALUES (?, ?);
+        coin, _time, volume, increase_rate
+      ) VALUES (?, ?, ?, ?);
     `;
 
-    await connection.execute(updateQuery, [dataList[0].real_value]);
-    console.log("Data updated successfully");
-    const values = [
-      dataList[dataList.length - 1].coin,
-      dataList[dataList.length - 1].timestamp,
-      dataList[dataList.length - 1].real_value,
-      dataList[dataList.length - 1].predicted_value,
-    ];
+    const groupedData = dataList.reduce((acc, curr) => {
+      if (!acc[curr.coin]) {
+        acc[curr.coin] = []; // 코인별 배열 초기화
+      }
+      acc[curr.coin].push(curr); // 해당 코인 그룹에 데이터 추가
+      return acc;
+    }, {});
 
-    await connection.execute(insertQuery, values);
-    await connection.execute(mobileQuery, [
-      dataList[dataList.length - 1].volume,
-      dataList[dataList.length - 1].rate,
-    ]);
+    //데이터 시간순 정렬
+    Object.keys(groupedData).forEach((coin) => {
+      groupedData[coin].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+    });
+
+    Object.keys(groupedData).forEach((coin) => {
+      connection.execute(updateQuery, [groupedData[coin][0].real_value]);
+
+      connection.execute(insertQuery, [
+        groupedData[coin][1].coin,
+        groupedData[coin][1].timestamp,
+        groupedData[coin][1].real_value,
+        groupedData[coin][1].predicted_value,
+      ]);
+
+      connection.execute(mobileQuery, [
+        groupedData[coin][1].coin,
+        groupedData[coin][1].timestamp,
+        groupedData[coin][0].volume,
+        groupedData[coin][1].rate,
+      ]);
+    });
+
+    console.log("Data updated successfully");
+
     console.log("Data inserted successfully");
   } catch (error) {
     console.error("Error updating the database:", error);
@@ -72,38 +88,54 @@ async function initDatabase() {
 
     console.log("Connected to the database");
 
-    await connection.execute("TRUNCATE TABLE xrp");
+    const groupedData = dataList.reduce((acc, curr) => {
+      if (!acc[curr.coin]) {
+        acc[curr.coin] = []; // 코인별 배열 초기화
+      }
+      acc[curr.coin].push(curr); // 해당 코인 그룹에 데이터 추가
+      return acc;
+    }, {});
+
+    Object.keys(groupedData).forEach((coin) => {
+      groupedData[coin].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+    });
+
+    await connection.execute("TRUNCATE TABLE coin_data");
     await connection.execute("TRUNCATE TABLE mobile_data");
     console.log("Existing data truncated");
 
     const insertQuery = `
-      INSERT INTO xrp (
+      INSERT INTO coin_data (
         coin, _time, real_value, predicted_value
       ) VALUES (?, ?, ?, ?);
     `;
 
     const mobileQuery = `
       INSERT INTO mobile_data (
-        volume, increase_rate
-      ) VALUES (?, ?);
+        coin, _time, volume, increase_rate
+      ) VALUES (?, ?, ?, ?);
     `;
 
-    for (const data of dataList) {
-      const coinvalues = [
-        data.coin,
-        data.timestamp,
-        data.real_value,
-        data.predicted_value,
-      ];
+    Object.keys(groupedData).forEach((coin) => {
+      groupedData[coin].forEach((data) => {
+        const coinvalues = [
+          data.coin,
+          data.timestamp,
+          data.real_value,
+          data.predicted_value,
+        ];
 
-      await connection.execute(insertQuery, coinvalues);
-      console.log("Data inserted successfully");
-    }
-
-    await connection.execute(mobileQuery, [
-      dataList[dataList.length - 1].volume,
-      dataList[dataList.length - 1].rate,
-    ]);
+        connection.execute(insertQuery, coinvalues);
+        if (data.rate != null) {
+          connection.execute(mobileQuery, [
+            data.coin,
+            data.timestamp,
+            data.volume,
+            data.rate,
+          ]);
+        }
+      });
+    });
   } catch (error) {
     console.error("Error updating the database:", error);
   } finally {
