@@ -27,7 +27,7 @@ async function updateDatabase() {
     `;
 
     const updateQuery = `
-      UPDATE coin_data SET real_value = ? WHERE id = ( SELECT id FROM coin_data ORDER BY id DESC LIMIT 1 );
+      UPDATE coin_data SET real_value = ? WHERE id = ( SELECT id FROM coin_data WHERE coin = ? ORDER BY id DESC LIMIT 1 );
     `;
 
     const mobileQuery = `
@@ -50,7 +50,7 @@ async function updateDatabase() {
     });
 
     Object.keys(groupedData).forEach((coin) => {
-      connection.execute(updateQuery, [groupedData[coin][0].real_value]);
+      connection.execute(updateQuery, [groupedData[coin][0].real_value, coin]);
 
       connection.execute(insertQuery, [
         groupedData[coin][1].coin,
