@@ -16,3 +16,8 @@
 - 새로운 기능을 추가할 때 test/ 디렉토리에 자신이 개발한 기능에 대한 `feature*.test.js` 파일도 작성해야함
 - git action으로 `feature` 브랜치에서 `main` 브랜치로 PR시 자동으로 테스트
 
+---
+
+### 현재 완료된 모델 
+- 24-12-03 20:55 기준
+- ADA, BTC, XRP, SOL
