@@ -1,5 +1,3 @@
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "../../.env") });
 const mysql = require("mysql2/promise");
 
 // 데이터베이스 연결 설정
