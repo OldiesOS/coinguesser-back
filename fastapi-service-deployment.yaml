@@ -24,7 +24,7 @@ spec:
         - env:
             - name: FASTAPI_ENV
               value: production
-          image: fastapi
+          image: fastapi:latest
           livenessProbe:
             exec:
               command:

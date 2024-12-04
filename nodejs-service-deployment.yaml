@@ -36,7 +36,7 @@ spec:
               value: "1234"
             - name: DB_USER
               value: admin
-          image: nodejs
+          image: nodejs:latest
           name: nodejs-container
           ports:
             - containerPort: 3000
