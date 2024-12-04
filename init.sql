@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS mobile_data (
     coin VARCHAR(10) NOT NULL,
     _time TIME NOT NULL,
     volume DECIMAL(10,2),
-    increase_rate DECIMAL(10,5)
+    increase_rate DECIMAL(10,5),
+    updown VARCHAR(10)
 );
 
 

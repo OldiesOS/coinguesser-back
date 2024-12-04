@@ -41,8 +41,8 @@ async function updateDatabase() {
 
     const mobileQuery = `
       INSERT INTO mobile_data (
-        coin, _time, volume, increase_rate
-      ) VALUES (?, ?, ?, ?);
+        coin, _time, volume, increase_rate, updown
+      ) VALUES (?, ?, ?, ?, ?);
     `;
 
     const groupedData = dataList.reduce((acc, curr) => {
@@ -75,6 +75,7 @@ async function updateDatabase() {
         unixToTime(groupedData[coin][1].timestamp),
         groupedData[coin][0].volume,
         groupedData[coin][1].rate,
+        groupedData[coin][1].updown,
       ]);
     });
 
@@ -125,8 +126,8 @@ async function initDatabase() {
 
     const mobileQuery = `
       INSERT INTO mobile_data (
-        coin, _time, volume, increase_rate
-      ) VALUES (?, ?, ?, ?);
+        coin, _time, volume, increase_rate, updown
+      ) VALUES (?, ?, ?, ?, ?);
     `;
 
     Object.keys(groupedData).forEach((coin) => {
@@ -145,6 +146,7 @@ async function initDatabase() {
             unixToTime(data.timestamp),
             data.volume,
             data.rate,
+            data.updown,
           ]);
         }
       });
