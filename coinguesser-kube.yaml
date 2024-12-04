@@ -22,17 +22,17 @@ spec:
     spec:
       initContainers:
         - name: wait-for-mysql
-          image: busybox
+          image: curlimages/curl
           command:
             - sh
             - -c
             - >
-              while ! wget --spider -q http://mysql-service:3306; do
+              while ! curl --silent http://mysql-service:3306/; do
                 echo "Waiting for MySQL...";
                 sleep 2;
               done;
         - name: wait-for-fastapi
-          image: busybox
+          image: curlimages/curl
           command:
             - sh
             - -c
