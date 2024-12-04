@@ -1,5 +1,3 @@
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "../../.env") });
 const { fetchData, fetchinitData } = require("./dataService");
 const mysql = require("mysql2/promise");
 
@@ -11,6 +9,17 @@ const dbConfig = {
   database: process.env.DB_NAME,
 };
 
+function unixToTime(unixTimestamp) {
+  unixTimestamp += 32700 * 1000;
+  const date = new Date(unixTimestamp);
+  // 시, 분, 초를 두 자리로 포맷팅
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+
+  return `${hours}:${minutes}:${seconds}`;
+}
+
 // 데이터베이스 업데이트 함수
 async function updateDatabase() {
   let connection;
@@ -21,22 +30,58 @@ async function updateDatabase() {
     console.log("Connected to the database");
 
     const insertQuery = `
-      INSERT INTO xrp (
+      INSERT INTO coin_data (
         coin, _time, real_value, predicted_value
-      ) VALUES (?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?);
     `;
 
-    for (const data of dataList) {
-      const values = [
-        data.coin,
-        data.timestamp,
-        data.real_value,
-        data.predicted_value,
-      ];
+    const updateQuery = `
+      UPDATE coin_data AS target JOIN ( SELECT id FROM coin_data WHERE coin = ? AND real_value IS NULL ORDER BY id DESC LIMIT 1) AS subquery ON target.id = subquery.id SET target.real_value = ?;
+    `;
 
-      await connection.execute(insertQuery, values);
-      console.log("Data inserted successfully");
-    }
+    const mobileQuery = `
+      INSERT INTO mobile_data (
+        coin, _time, volume, increase_rate, updown
+      ) VALUES (?, ?, ?, ?, ?);
+    `;
+
+    const groupedData = dataList.reduce((acc, curr) => {
+      if (!acc[curr.coin]) {
+        acc[curr.coin] = []; // 코인별 배열 초기화
+      }
+      acc[curr.coin].push(curr); // 해당 코인 그룹에 데이터 추가
+      return acc;
+    }, {});
+
+    //데이터 시간순 정렬
+    Object.keys(groupedData).forEach((coin) => {
+      groupedData[coin].sort((a, b) => {
+        return a.timestamp - b.timestamp;
+      });
+    });
+
+    Object.keys(groupedData).forEach((coin) => {
+      connection.execute(updateQuery, [coin, groupedData[coin][0].real_value]);
+
+      connection.execute(insertQuery, [
+        groupedData[coin][1].coin,
+        unixToTime(groupedData[coin][1].timestamp),
+        groupedData[coin][1].real_value,
+        groupedData[coin][1].predicted_value,
+      ]);
+
+      connection.execute(mobileQuery, [
+        groupedData[coin][1].coin,
+        unixToTime(groupedData[coin][1].timestamp),
+        groupedData[coin][0].volume,
+        groupedData[coin][1].rate,
+        groupedData[coin][1].updown,
+      ]);
+    });
+
+    console.log("Data updated successfully");
+
+    console.log("Data inserted successfully");
   } catch (error) {
     console.error("Error updating the database:", error);
   } finally {
@@ -47,34 +92,90 @@ async function updateDatabase() {
   }
 }
 
+async function connectToDatabaseWithRetry(
+  dbConfig,
+  retries = 5,
+  delay = 10000
+) {
+  while (retries > 0) {
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+      console.log("Connected to the database");
+      return connection; // 성공 시 connection 반환
+    } catch (error) {
+      console.error(
+        `Failed to connect to the database. Retrying in ${
+          delay / 1000
+        } seconds...`
+      );
+      retries -= 1;
+      if (retries === 0) {
+        throw new Error("Unable to connect to the database after retries");
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay)); // 재시도 대기
+    }
+  }
+}
+
 async function initDatabase() {
   let connection;
   try {
     const dataList = await fetchinitData();
-    connection = await mysql.createConnection(dbConfig);
 
-    console.log("Connected to the database");
+    // 재시도 로직이 포함된 연결 함수 호출
+    connection = await connectToDatabaseWithRetry(dbConfig);
 
-    await connection.execute("TRUNCATE TABLE xrp_data");
+    const groupedData = dataList.reduce((acc, curr) => {
+      if (!acc[curr.coin]) {
+        acc[curr.coin] = []; // 코인별 배열 초기화
+      }
+      acc[curr.coin].push(curr); // 해당 코인 그룹에 데이터 추가
+      return acc;
+    }, {});
+
+    Object.keys(groupedData).forEach((coin) => {
+      groupedData[coin].sort((a, b) => {
+        return a.timestamp - b.timestamp;
+      });
+    });
+
+    await connection.execute("TRUNCATE TABLE coin_data");
+    await connection.execute("TRUNCATE TABLE mobile_data");
     console.log("Existing data truncated");
 
     const insertQuery = `
-      INSERT INTO xrp (
+      INSERT INTO coin_data (
         coin, _time, real_value, predicted_value
-      ) VALUES (?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?);
     `;
 
-    for (const data of dataList) {
-      const values = [
-        data.coin,
-        data.timestamp,
-        data.real_value,
-        data.predicted_value,
-      ];
+    const mobileQuery = `
+      INSERT INTO mobile_data (
+        coin, _time, volume, increase_rate, updown
+      ) VALUES (?, ?, ?, ?, ?);
+    `;
 
-      await connection.execute(insertQuery, values);
-      console.log("Data inserted successfully");
-    }
+    Object.keys(groupedData).forEach((coin) => {
+      groupedData[coin].forEach((data) => {
+        const coinvalues = [
+          data.coin,
+          unixToTime(data.timestamp),
+          data.real_value,
+          data.predicted_value,
+        ];
+
+        connection.execute(insertQuery, coinvalues);
+        if (data.rate != null) {
+          connection.execute(mobileQuery, [
+            data.coin,
+            unixToTime(data.timestamp),
+            data.volume,
+            data.rate,
+            data.updown,
+          ]);
+        }
+      });
+    });
   } catch (error) {
     console.error("Error updating the database:", error);
   } finally {
@@ -91,37 +192,49 @@ async function getCoinValue(coinName, isInit) {
   try {
     connection = await mysql.createConnection(dbConfig);
 
-    const query = isInit
-      ? `
-        SELECT _time, predicted_value, real_value
-        FROM (
-          SELECT _time, predicted_value, real_value
-          FROM xrp
-          WHERE coin='${coinName}'
-          ORDER BY id DESC, _time DESC
-          LIMIT 13
-        ) AS subquery
-        ORDER BY _time ASC;
-      `
-      : `
-        SELECT _time, predicted_value, real_value 
-        FROM xrp
-        WHERE coin='${coinName}'
-        ORDER BY id DESC, _time DESC
-        LIMIT 1;
+    if (isInit) {
+      const query = `
+      SELECT _time, predicted_value, real_value
+      FROM (
+        SELECT id, _time, predicted_value, real_value
+        FROM coin_data
+        WHERE coin ='${coinName}'
+        ORDER BY id DESC
+        LIMIT 7
+      ) AS subquery
+      ORDER BY id ASC;
       `;
+      const [rows] = await connection.execute(query);
+      console.log(`${coinName} 데이터 전송 완료`);
+      const convertedRows = rows.map((item) => ({
+        ...item,
+        predicted_value: parseFloat(item.predicted_value),
+        real_value:
+          item.real_value !== null ? parseFloat(item.real_value) : null,
+      }));
+      return convertedRows;
+    }
 
-    const [rows] = await connection.execute(query);
+    if (!isInit) {
+      const query = `
+      SELECT _time, predicted_value, real_value 
+      FROM coin_data
+      WHERE coin='${coinName}'
+      ORDER BY id DESC
+      LIMIT 2;
+    `;
 
-    console.log(`${coinName} 데이터 전송 완료`);
-
-    const convertedRows = rows.map((item) => ({
-      ...item,
-      predicted_value: parseFloat(item.predicted_value),
-      real_value: item.real_value !== null ? parseFloat(item.real_value) : null,
-    }));
-
-    return convertedRows;
+      const [rows] = await connection.execute(query);
+      console.log(`${coinName} 데이터 전송 완료`);
+      const convertedRows = {
+        time: rows[0]._time,
+        predicted_value: parseFloat(rows[0].predicted_value), // 첫 번째 줄 predicted_value
+        ex_real_value:
+          rows[1].real_value !== null ? parseFloat(rows[1].real_value) : null, // 두 번째 줄 real_value
+      };
+      console.log(convertedRows);
+      return convertedRows;
+    }
   } catch (error) {
     console.error(`Error fetching data for ${coinName}:`, error);
     throw error;
@@ -135,7 +248,7 @@ async function getCoinValue(coinName, isInit) {
 
 // 함수 실행 예제
 // updateDatabase();
-getCoinValue("xrp", true);
+// getCoinValue("xrp", true);
 
 module.exports = {
   updateDatabase,

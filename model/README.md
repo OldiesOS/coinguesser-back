@@ -10,7 +10,7 @@
 
 - **HTTP 메서드** : `POST`
 
-- **URL** : `/predict`
+- **URL** : `/predict/종목이름` `ex) /predict/XRP`
 
 - **요청 형식** : json
 
@@ -44,6 +44,6 @@
 - **응답 예시**
 ```json
 {
-  "predicted_close": 0.5979
+    "XRP_predicted_close": 1.07
 }
 ```

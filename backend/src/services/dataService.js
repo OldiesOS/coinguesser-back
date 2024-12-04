@@ -8,7 +8,7 @@ async function fetchinitData() {
     const scriptPath = path.join(__dirname, "../scripts/fetch_data.py");
 
     exec(
-      `${venvPythonPath} ${scriptPath} --count 13`,
+      `${venvPythonPath} ${scriptPath} --count 7`,
       (error, stdout, stderr) => {
         if (error) {
           console.error("Error executing Python script:", error);
@@ -38,7 +38,7 @@ async function fetchData() {
     const scriptPath = path.join(__dirname, "../scripts/fetch_data.py");
 
     exec(
-      `${venvPythonPath} ${scriptPath} --count 1`,
+      `${venvPythonPath} ${scriptPath} --count 2`,
       (error, stdout, stderr) => {
         if (error) {
           console.error("Error executing Python script:", error);

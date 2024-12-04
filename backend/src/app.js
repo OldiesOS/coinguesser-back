@@ -10,6 +10,8 @@ const {
   updateDatabase,
   getCoinValue,
 } = require("./services/dbService");
+const { getMobileData } = require("./API/mobileAPI");
+
 
 const eventEmitter = new EventEmitter();
 
@@ -34,11 +36,13 @@ const eventEmitter = new EventEmitter();
   }
 })();
 
-//테스팅을 위해서 초 단위로 설정함
-schedule.scheduleJob("*/5* * * *", () => {
+//5분 단위 실행
+schedule.scheduleJob("*/5 * * * *", () => {
   console.log("Running scheduled database update...");
-  updateDatabase();
-  eventEmitter.emit("dataUpdate"); // 이벤트 발생
+  updateDatabase().then(() => {
+    eventEmitter.emit("dataUpdate"); // 작업 완료 후 이벤트 발생
+  });
+
 });
 
 // Flutter 웹 애플리케이션의 정적 파일 제공
@@ -84,12 +88,15 @@ app.get("/API/stream/:coin_name", (req, res) => {
   const coin_name = req.params.coin_name;
 
   const sendData = async (coin_name) => {
+    console.log('send data 실행')
     try {
       const result = await getCoinValue(coin_name, false); // coin_name 기반 데이터 가져오기
       const res_value = {
         coin: coin_name,
-        ...result[0],
+        ...result,
+        event: "update"
       };
+      console.log(res_value);
       res.write(`data: ${JSON.stringify(res_value)}\n\n`); // SSE 데이터 전송
     } catch (error) {
       console.error("Error during SSE:", error);
@@ -108,12 +115,60 @@ app.get("/API/stream/:coin_name", (req, res) => {
   // 첫 데이터 전송
   sendData(coin_name);
 
+  setInterval(() => {
+    res.write(`data: ${JSON.stringify({ event: "ping" })}\n\n`);
+  }, 15000); // 15초마다
+
   req.on("close", () => {
     console.log("SSE connection closed");
     eventEmitter.removeListener("dataUpdate", handleUpdate); // 리스너 제거
     res.end(); // SSE 응답 종료
   });
 });
+
+
+// 모바일 스트림
+app.get("/API/stream/mobile/:coin_name", async (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  const coin_name = req.params.coin_name;
+
+  const sendData = async (coin_name) => {
+    console.log('send data 실행')
+    try {
+      const result = await getMobileData(coin_name); 
+      console.log(result);
+      res.write(`data: ${JSON.stringify(result)}\n\n`); // SSE 데이터 전송
+
+    } catch (error) {
+      console.error("Error during SSE:", error);
+      res.write(`event: error\ndata: "Error fetching data"\n\n`);
+    }
+  };
+
+  // 이벤트 리스너 등록
+  const handleUpdate = () => {
+    sendData(coin_name); // 이벤트가 발생하면 sendData 호출
+  };
+
+  eventEmitter.on("dataUpdate", handleUpdate);
+
+  // 첫 데이터 전송
+  sendData(coin_name);
+
+  setInterval(() => {
+    res.write(`data: ${JSON.stringify({ event: "ping" })}\n\n`);
+  }, 15000); // 15초마다
+
+  req.on("close", () => {
+    console.log("SSE connection closed");
+    eventEmitter.removeListener("dataUpdate", handleUpdate); // 리스너 제거
+    res.end(); // SSE 응답 종료
+  });
+});
+
 
 // app 객체를 외부에서 사용할 수 있도록 내보내기
 module.exports = app;
