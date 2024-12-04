@@ -92,13 +92,38 @@ async function updateDatabase() {
   }
 }
 
+async function connectToDatabaseWithRetry(
+  dbConfig,
+  retries = 5,
+  delay = 10000
+) {
+  while (retries > 0) {
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+      console.log("Connected to the database");
+      return connection; // 성공 시 connection 반환
+    } catch (error) {
+      console.error(
+        `Failed to connect to the database. Retrying in ${
+          delay / 1000
+        } seconds...`
+      );
+      retries -= 1;
+      if (retries === 0) {
+        throw new Error("Unable to connect to the database after retries");
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay)); // 재시도 대기
+    }
+  }
+}
+
 async function initDatabase() {
   let connection;
   try {
     const dataList = await fetchinitData();
-    connection = await mysql.createConnection(dbConfig);
 
-    console.log("Connected to the database");
+    // 재시도 로직이 포함된 연결 함수 호출
+    connection = await connectToDatabaseWithRetry(dbConfig);
 
     const groupedData = dataList.reduce((acc, curr) => {
       if (!acc[curr.coin]) {
