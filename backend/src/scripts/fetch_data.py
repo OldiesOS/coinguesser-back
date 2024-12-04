@@ -7,6 +7,34 @@ import requests
 import json
 import argparse
 
+
+def retry_request(url, json_data, retries=5, delay=5):
+    """
+    HTTP POST 요청을 재시도하는 함수.
+    
+    Args:
+        url (str): 요청 URL.
+        json_data (dict): 전송할 JSON 데이터.
+        retries (int): 최대 재시도 횟수.
+        delay (int): 재시도 간격(초).
+        
+    Returns:
+        response (Response): 요청에 성공하면 Response 객체를 반환.
+        None: 요청이 끝까지 실패하면 None 반환.
+    """
+    for attempt in range(retries):
+        try:
+            response = requests.post(url, json=json_data)
+            if response.status_code == 200:
+                return response
+            else:
+                print(f"Error {response.status_code} on attempt {attempt + 1}. Retrying...")
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {e}. Retrying...")
+        time.sleep(delay)
+    print(f"Failed to connect after {retries} retries.")
+    return None
+
 # Binance API 연결
 exchange = ccxt.binance({
     "rateLimit": 1200,
@@ -112,7 +140,7 @@ for symbol in symbol_List:
         temp.extend([symbol.split('/')[0],payload['timestamp'],payload['target_close']])
         del payload['timestamp']
         del payload['target_close']
-        response = requests.post(url+symbol.split('/')[0], json=payload)
+        response = retry_request(url + symbol.split('/')[0], json_data=payload, retries=5, delay=10)
 
         # 응답 데이터 확인
         if response.status_code == 200:

@@ -13,6 +13,11 @@ services:
       DB_USER: admin
       DB_PASSWORD: 1234
       DB_NAME: db
+    depends_on:
+      mysql-service:
+        condition: service_healthy
+      fastapi-service:
+        condition: service_healthy
     command: ["wait-for-it", "mysql-service:3306", "--", "npm", "start"]
 
   fastapi-service:
