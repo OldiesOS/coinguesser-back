@@ -14,6 +14,11 @@ services:
       DB_PASSWORD: 1234
       DB_NAME: db
     command: ["wait-for-it", "mysql-service:3306", "--", "npm", "start"]
+    depends_on:
+        fastapi-service:
+          condition: service_healthy
+        mysql-service:
+          condition: service_healthy
 
   fastapi-service:
     build:
