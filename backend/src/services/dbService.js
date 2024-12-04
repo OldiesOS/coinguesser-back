@@ -95,7 +95,7 @@ async function updateDatabase() {
 async function connectToDatabaseWithRetry(
   dbConfig,
   retries = 5,
-  delay = 10000
+  delay = 30000
 ) {
   while (retries > 0) {
     try {
