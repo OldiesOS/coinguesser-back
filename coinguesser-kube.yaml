@@ -20,36 +20,12 @@ spec:
       labels:
         io.kompose.service: nodejs-service
     spec:
-      initContainers:
-        - name: wait-for-mysql
-          image: curlimages/curl
-          command:
-            - sh
-            - -c
-            - >
-              while ! curl --silent http://mysql-service:3306/; do
-                echo "Waiting for MySQL...";
-                sleep 2;
-              done;
-        - name: wait-for-fastapi
-          image: curlimages/curl
-          command:
-            - sh
-            - -c
-            - >
-              while ! curl -s http://fastapi-service:8000/health; do
-                echo "Waiting for FastAPI...";
-                sleep 2;
-              done;
       containers:
-        - args:
-            - wait-for-it
-            - mysql-service:3306
-            - --wait-for-it
-            - fastapi-service:8000
-            - --
-            - npm
-            - start
+        - name: nodejs-container
+          image: minkui1826/nodejs-service:latest
+          ports:
+            - containerPort: 3000
+              protocol: TCP
           env:
             - name: DB_HOST
               value: mysql-service
@@ -59,12 +35,19 @@ spec:
               value: "1234"
             - name: DB_USER
               value: admin
-          image: minkui1826/nodejs-service:latest
-          name: nodejs-container
-          ports:
-            - containerPort: 3000
-              protocol: TCP
-      restartPolicy: Always
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
 
 ---
 apiVersion: v1
