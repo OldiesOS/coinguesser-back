@@ -10,12 +10,37 @@ const dbConfig = {
   database: process.env.DB_NAME,
 };
 
+async function connectToDatabaseWithRetry(
+  dbConfig,
+  retries = 5,
+  delay = 10000
+) {
+  while (retries > 0) {
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+      console.log("Connected to the database");
+      return connection; // 성공 시 connection 반환
+    } catch (error) {
+      console.error(
+        `Failed to connect to the database. Retrying in ${
+          delay / 1000
+        } seconds...`
+      );
+      retries -= 1;
+      if (retries === 0) {
+        throw new Error("Unable to connect to the database after retries");
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay)); // 재시도 대기
+    }
+  }
+}
+
 // Coin 값을 가져오는 함수
 async function getMobileData(coinName) {
   let connection;
 
   try {
-    connection = await mysql.createConnection(dbConfig);
+    connection = await connectToDatabaseWithRetry(dbConfig);
     const query = `
         SELECT coin, _time, volume, increase_rate, updown
         FROM mobile_data
