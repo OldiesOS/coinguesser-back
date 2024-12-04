@@ -132,7 +132,7 @@ for symbol in symbol_List:
     p_value = result.iloc[-1]['predicted_value']
     prev_value = result.iloc[-2]['predicted_value']
     next_value = result.iloc[-1]['predicted_value']
-    if prev_value - next_value > 0:
+    if prev_value <= next_value:
         updown_value = 'UP'
     else:
         updown_value = 'DOWN'
