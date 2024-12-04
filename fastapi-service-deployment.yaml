@@ -25,6 +25,8 @@ spec:
             - name: FASTAPI_ENV
               value: production
           image: fastapi:latest
+          name: fastapi-container
+          imagePullPolicy: IfNotPresent
           livenessProbe:
             exec:
               command:

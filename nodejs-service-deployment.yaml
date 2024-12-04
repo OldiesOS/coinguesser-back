@@ -38,6 +38,7 @@ spec:
               value: admin
           image: nodejs:latest
           name: nodejs-container
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
               protocol: TCP
