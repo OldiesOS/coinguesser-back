@@ -10,40 +10,50 @@ const dbConfig = {
   database: process.env.DB_NAME,
 };
 
-
 // Coin 값을 가져오는 함수
 async function getMobileData(coinName) {
     let connection;
 
     try {
-      connection = await mysql.createConnection(dbConfig);
+        connection = await mysql.createConnection(dbConfig);
         const query = `
         SELECT coin, _time, volume, increase_rate 
         FROM mobile_data
         WHERE coin='${coinName}'
         ORDER BY id DESC
         LIMIT 1;
-      `;
-  
+        `;
+
         const [rows] = await connection.execute(query);
 
+        if (rows.length === 0) {
+            return null; // 데이터가 없을 경우 null 반환
+        }
+
+        const row_ = rows[0];
         
-
-        return rows[0];
-      
+        const result = {
+          coin: row_.coin,
+          time: row_._time,
+          volume: parseFloat(row_.volume),
+          increase_rate: parseFloat(row_.increase_rate),
+      };
+        console.log(result);
+        // volume과 increase_rate를 float로 파싱
+        return result;
     } catch (error) {
-      console.error(`Error fetching data for ${coinName}:`, error);
-      throw error;
+        console.error(`Error fetching data for ${coinName}:`, error);
+        throw error;
     } finally {
-      if (connection) {
-        await connection.end();
-        console.log("Database connection closed");
-      }
+        if (connection) {
+            await connection.end();
+            console.log("Database connection closed");
+        }
     }
-
 }
 
-module.exports = {
-  getMobileData
-};
+getMobileData('xrp');
 
+module.exports = {
+    getMobileData,
+};
