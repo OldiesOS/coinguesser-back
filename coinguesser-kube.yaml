@@ -35,6 +35,13 @@ spec:
               value: "1234"
             - name: DB_USER
               value: admin
+          resources:
+            requests:
+              memory: "128Mi" # 최소 128Mi 메모리 요청
+              cpu: "250m" # 최소 250m CPU 요청
+            limits:
+              memory: "256Mi" # 최대 256Mi 메모리 사용
+              cpu: "500m" # 최대 500m CPU 사용
           startupProbe:
             httpGet:
               path: /health
