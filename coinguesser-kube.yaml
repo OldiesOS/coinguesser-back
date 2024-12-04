@@ -111,7 +111,7 @@ spec:
           name: mysql-container
           volumeMounts:
             - mountPath: /docker-entrypoint-initdb.d/init.sql
-              name: mysql-service-cm0
+              name: mysql-service
               subPath: init.sql
       restartPolicy: Always
       volumes:
@@ -119,8 +119,8 @@ spec:
             items:
               - key: init.sql
                 path: init.sql
-            name: mysql-service-cm0
-          name: mysql-service-cm0
+            name: mysql-service
+          name: mysql-service
 
 ---
 apiVersion: v1
@@ -163,7 +163,7 @@ metadata:
     use-subpath: "true"
   labels:
     io.kompose.service: mysql-service
-  name: mysql-service-cm0
+  name: mysql-service
 
 ---
 apiVersion: apps/v1

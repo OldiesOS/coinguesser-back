@@ -37,4 +37,4 @@ metadata:
     use-subpath: "true"
   labels:
     io.kompose.service: mysql-service
-  name: mysql-service-cm0
+  name: mysql-service
