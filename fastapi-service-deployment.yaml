@@ -24,7 +24,7 @@ spec:
         - env:
             - name: FASTAPI_ENV
               value: production
-          image: coinguesser-back-fastapi-service:latest
+          image: fastapi
           livenessProbe:
             exec:
               command:
