@@ -36,7 +36,7 @@ spec:
               value: "1234"
             - name: DB_USER
               value: admin
-          image: nodejs-service
+          image: coinguesser-back-fastapi-service:latest
           name: nodejs-container
           ports:
             - containerPort: 3000
