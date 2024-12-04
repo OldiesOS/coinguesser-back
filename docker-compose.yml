@@ -8,15 +8,8 @@ services:
     container_name: nodejs-container
     ports:
       - "3000:3000"
-    networks:
-      - app-network
-    depends_on:
-      fastapi-service:
-        condition: service_healthy
-      mysql-service:
-        condition: service_healthy
     environment:
-      DB_HOST: mysql-service # MySQL 컨테이너 이름이 호스트 이름으로 사용됨
+      DB_HOST: mysql-service
       DB_USER: admin
       DB_PASSWORD: 1234
       DB_NAME: db
@@ -29,10 +22,8 @@ services:
     container_name: fastapi-container
     ports:
       - "8000:8000"
-    networks:
-      - app-network
     environment:
-      - FASTAPI_ENV=production
+      FASTAPI_ENV: production
     healthcheck:
       test: ["CMD", "curl", "-f", "http://0.0.0.0:8000/health"]
       interval: 30s
@@ -43,8 +34,6 @@ services:
   mysql-service:
     image: mysql:latest
     container_name: mysql-container
-    networks:
-      - app-network
     environment:
       MYSQL_ROOT_PASSWORD: 1234
       MYSQL_DATABASE: db
@@ -58,7 +47,3 @@ services:
       timeout: 5s
       retries: 10
       start_period: 60s
-
-networks:
-  app-network:
-    driver: bridge
