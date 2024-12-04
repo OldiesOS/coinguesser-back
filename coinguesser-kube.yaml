@@ -178,7 +178,7 @@ metadata:
     app: mysql
 spec:
   selector:
-    app: mysql
+    io.kompose.service: mysql-service
   ports:
     - protocol: TCP
       port: 3306
