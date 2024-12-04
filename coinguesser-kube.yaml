@@ -123,7 +123,13 @@ spec:
           name: mysql-service
 
 ---
+# MySQL 초기화 SQL 스크립트를 위한 ConfigMap
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init-sql
+  labels:
+    app: mysql
 data:
   init.sql: |+
     CREATE DATABASE IF NOT EXISTS db;
@@ -134,7 +140,7 @@ data:
     CREATE USER IF NOT EXISTS 'admin'@'%' IDENTIFIED BY '1234';
 
     -- 권한 부여
-    GRANT ALL PRIVILEGES ON db.* TO 'admin'@'%';
+    GRANT ALL PRIVILEGES ON db.* TO 'admin'@'%' WITH GRANT OPTION;
 
     -- 변경사항 적용
     FLUSH PRIVILEGES;
@@ -156,14 +162,22 @@ data:
         updown VARCHAR(10)
     );
 
-
-kind: ConfigMap
+---
+# MySQL Service 정의
+apiVersion: v1
+kind: Service
 metadata:
-  annotations:
-    use-subpath: "true"
-  labels:
-    io.kompose.service: mysql-service
   name: mysql-service
+  labels:
+    app: mysql
+spec:
+  selector:
+    app: mysql
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+  type: ClusterIP
 
 ---
 apiVersion: apps/v1

@@ -38,3 +38,13 @@ metadata:
   labels:
     io.kompose.service: mysql-service
   name: mysql-service
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  selector:
+    app: mysql
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
