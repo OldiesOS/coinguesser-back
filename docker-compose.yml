@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   nodejs-service:
     build:
@@ -8,11 +10,17 @@ services:
       - "3000:3000"
     networks:
       - app-network
-    environment:
-      - NODE_ENV=production
     depends_on:
       fastapi-service:
         condition: service_healthy
+      mysql-service:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql-service # MySQL 컨테이너 이름이 호스트 이름으로 사용됨
+      DB_USER: admin
+      DB_PASSWORD: 1234
+      DB_NAME: db
+    command: ["wait-for-it", "mysql-service:3306", "--", "npm", "start"]
 
   fastapi-service:
     build:
@@ -27,10 +35,29 @@ services:
       - FASTAPI_ENV=production
     healthcheck:
       test: ["CMD", "curl", "-f", "http://0.0.0.0:8000/health"]
-      interval: 180s
+      interval: 30s
       timeout: 5s
-      retries: 3
-      start_period: 10s
+      retries: 5
+      start_period: 30s
+
+  mysql-service:
+    image: mysql:latest
+    container_name: mysql-container
+    networks:
+      - app-network
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: 1234
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
 networks:
   app-network:

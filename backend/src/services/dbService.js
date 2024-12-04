@@ -1,5 +1,3 @@
-const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "../../.env") });
 const { fetchData, fetchinitData } = require("./dataService");
 const mysql = require("mysql2/promise");
 
@@ -38,7 +36,7 @@ async function updateDatabase() {
     `;
 
     const updateQuery = `
-      UPDATE coin_data SET real_value = ? WHERE id = ( SELECT id FROM coin_data WHERE coin = ? AND real_value IS NULL ORDER BY id DESC LIMIT 1);
+      UPDATE coin_data AS target JOIN ( SELECT id FROM coin_data WHERE coin = ? AND real_value IS NULL ORDER BY id DESC LIMIT 1) AS subquery ON target.id = subquery.id SET target.real_value = ?;
     `;
 
     const mobileQuery = `
@@ -63,7 +61,7 @@ async function updateDatabase() {
     });
 
     Object.keys(groupedData).forEach((coin) => {
-      connection.execute(updateQuery, [groupedData[coin][0].real_value, coin]);
+      connection.execute(updateQuery, [coin, groupedData[coin][0].real_value]);
 
       connection.execute(insertQuery, [
         groupedData[coin][1].coin,
