@@ -262,8 +262,7 @@ spec:
   type: LoadBalancer
 
 ---
-
-  apiVersion: apps/v1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mysql
@@ -305,4 +304,3 @@ spec:
         resources:
           requests:
             storage: 5Gi
-
