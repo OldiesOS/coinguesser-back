@@ -27,7 +27,7 @@ spec:
             - sh
             - -c
             - >
-              until nc -z mysql-service 3306; do
+              while ! wget --spider -q http://mysql-service:3306; do
                 echo "Waiting for MySQL...";
                 sleep 2;
               done;
@@ -37,7 +37,7 @@ spec:
             - sh
             - -c
             - >
-              until nc -z fastapi-service 8000; do
+              while ! curl -s http://fastapi-service:8000/health; do
                 echo "Waiting for FastAPI...";
                 sleep 2;
               done;
