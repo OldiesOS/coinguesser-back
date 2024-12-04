@@ -36,7 +36,7 @@ spec:
               value: "1234"
             - name: DB_USER
               value: admin
-          image: nodejs-service
+          image: minkui1826/nodejs-service:latest
           name: nodejs-container
           ports:
             - containerPort: 3000
@@ -192,7 +192,7 @@ spec:
         - env:
             - name: FASTAPI_ENV
               value: production
-          image: fastapi-service
+          image: minkui1826/fastapi-service:latest
           livenessProbe:
             exec:
               command:
