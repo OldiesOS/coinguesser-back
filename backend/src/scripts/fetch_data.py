@@ -126,12 +126,20 @@ for symbol in symbol_List:
     final_df = pd.DataFrame(final_data, columns=final_columns)
     result = pd.concat([final_df, volume_value], axis=1)
     result['rate'] = None  # 먼저 빈 컬럼 생성
+    result['updown'] = None
 
     r_value = result.iloc[-2]['real_value']
     p_value = result.iloc[-1]['predicted_value']
+    prev_value = result.iloc[-2]['predicted_value']
+    next_value = result.iloc[-1]['predicted_value']
+    if prev_value - next_value > 0:
+        updown_value = 'UP'
+    else:
+        updown_value = 'DOWN'
     increase_rate = ((p_value - r_value) / r_value) * 100
     # 마지막 행의 값으로 채우기
     result.loc[result.index[-1], 'rate'] = increase_rate
+    result.loc[result.index[-1], 'updown'] = updown_value
     final_result = pd.concat([final_result,result], axis=0)
 
 

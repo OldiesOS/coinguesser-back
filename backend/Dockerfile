@@ -21,12 +21,11 @@ COPY . .
 # 애플리케이션을 노출할 포트 설정
 EXPOSE 3000
 
-# Copy wait-for-it.sh script
+# wait-for-it.sh script 복사
 COPY wait-for-it.sh /usr/local/bin/wait-for-it
 
-# Set wait-for-it.sh as executable
+# wait-for-it.sh 실행 가능하도록 설정
 RUN chmod +x /usr/local/bin/wait-for-it
-
 
 # 애플리케이션 시작 명령어
 CMD ["npm", "start"]
